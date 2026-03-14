@@ -1,0 +1,657 @@
+{
+  "name": "manual_rebate_process",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "object",
+        "bucketName": "manual_rebate_process",
+        "returnAll": true,
+        "listFilters": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.googleCloudStorage",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -576
+      ],
+      "id": "5f517ffe-6b26-438f-a52e-bff500aac78c",
+      "name": "Get a list of objects",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCloudStorageOAuth2Api": {
+          "id": "6QP5YachKBeHCFiz",
+          "name": "Google Cloud Storage account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a136bebc-6905-4c0e-a122-e418e4da6fca",
+              "leftValue": "={{ $json.selfLink }}",
+              "rightValue": "xlsx",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "ded2bd16-d0d4-4e0b-917e-cd4228c664c5",
+              "leftValue": "={{ $json.selfLink }}",
+              "rightValue": "csv",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        528,
+        -576
+      ],
+      "id": "8c83f106-e397-465b-a423-09311007c59f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "object",
+        "operation": "get",
+        "bucketName": "=manual_rebate_process",
+        "objectName": "={{ $json.name }}",
+        "projection": "full",
+        "alt": "media",
+        "getParameters": {},
+        "encryptionHeaders": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.googleCloudStorage",
+      "typeVersion": 1,
+      "position": [
+        752,
+        -576
+      ],
+      "id": "b5275543-ea73-49ad-a770-563ff5bf8dfc",
+      "name": "Get object data or metadata",
+      "credentials": {
+        "googleCloudStorageOAuth2Api": {
+          "id": "6QP5YachKBeHCFiz",
+          "name": "Google Cloud Storage account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "readAsString": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -576
+      ],
+      "id": "44e30704-b509-45b2-9dfe-e6f51f0a01ab",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "function pad2(n) {\n  return String(n).padStart(2, '0');\n}\n\nfunction todayISO() {\n  return new Date().toISOString().slice(0, 10);\n}\n\nfunction excelSerialToISO(n) {\n  const excelEpoch = Date.UTC(1899, 11, 30);\n  const ms = excelEpoch + Number(n) * 86400000;\n  const d = new Date(ms);\n  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);\n}\n\nfunction parseDateToISO(v) {\n  if (v === null || v === undefined || v === '') return null;\n\n  if (typeof v === 'number') return excelSerialToISO(v);\n\n  const s = String(v).trim();\n  if (!s) return null;\n\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n\n  const m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})$/);\n  if (m) return `${m[3]}-${pad2(m[2])}-${pad2(m[1])}`;\n\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);\n}\n\nfunction toASCII(domain) {\n  if (!domain) return null;\n\n  let d = String(domain)\n    .normalize('NFC')\n    .trim()\n    .replace(/^[a-z]+:\\/\\//i, '')   // remove protocol\n    .replace(/[/?#].*$/, '')        // remove path/query/hash\n    .replace(/:\\d+$/, '')           // remove port\n    .replace(/\\.+$/, '')            // remove trailing dots\n    .toLowerCase();\n\n  try {\n    const urlMod = require('node:url');\n    if (typeof urlMod.domainToASCII === 'function') {\n      const ascii = urlMod.domainToASCII(d);\n      return ascii || null;\n    }\n  } catch (e) {}\n\n  return d;\n}\n\nfunction cleanDomain(value) {\n  if (value === null || value === undefined || value === '') return null;\n\n  let d = String(value)\n    .normalize('NFC')\n    .trim()\n    .replace(/\\s+/g, '')            // remove all spaces\n    .replace(/\\u3002|\\uFF0E|\\uFF61/g, '.') // normalize unicode dots\n    .replace(/\\.+$/, '')            // remove trailing dots\n    .toLowerCase();\n\n  d = toASCII(d);\n\n  if (!d || !d.includes('.')) return null;\n\n  // reject obvious bad leftovers\n  if (/[^\\x20-\\x7E]/.test(d)) return null;\n\n  return d;\n}\n\nfunction cleanText(value) {\n  if (value === null || value === undefined || value === '') return null;\n  const s = String(value).trim();\n  return s || null;\n}\n\nfunction cleanDomainType(value) {\n  if (value === null || value === undefined || value === '') return null;\n\n  const s = String(value).trim().toLowerCase();\n\n  if (['renew', 'renewal'].includes(s)) return 'renew';\n  if (['new', 'registration', 'create'].includes(s)) return 'new';\n  if (['premium new', 'premium_new', 'premiumnew'].includes(s)) return 'premium new';\n  if (['premium renew', 'premium_renew', 'premiumrenew'].includes(s)) return 'premium renew';\n\n  return s;\n}\n\nconst allItems = $input.all();\nconst firstRow = allItems[0]?.json || {};\nconst fileFallbackDate = parseDateToISO(firstRow.file_date) || todayISO();\n\nconst seen = new Set();\nconst output = [];\n\nfor (const item of allItems) {\n  const row = item.json || {};\n\n  const cleanedDomain = cleanDomain(row.domain);\n  if (!cleanedDomain) continue;\n\n  if (seen.has(cleanedDomain)) continue;\n  seen.add(cleanedDomain);\n\n  let finalDate = parseDateToISO(row.date);\n  if (!finalDate) finalDate = fileFallbackDate;\n\n  output.push({\n    json: {\n      date: finalDate,\n      domain: cleanedDomain,\n      domain_type: cleanDomainType(row.domain_type),\n      client: cleanText(row.client),\n      promo_tag: cleanText(row.promo_tag)\n    }\n  });\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -576
+      ],
+      "id": "f12c0486-4b0c-4c66-bbc5-dc3f563de5de",
+      "name": "clean data"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function cleanString(v) {\n  if (v === undefined || v === null) return null;\n  const s = String(v).trim();\n  return s === \"\" ? null : s;\n}\n\nfunction normalizeDate(v) {\n  if (v === undefined || v === null) return null; \n  const s = String(v).trim();\n  if (!s) return null;\n\n  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;\n  if (/^\\d{4}-\\d{2}-\\d{2}T/.test(s)) return s.slice(0, 10);\n\n  return null;\n}\n\n// ✅ safest: read filename from the Split Out node (1 file → many rows)\nconst filename = $items(\"Get a list of objects\")[0]?.json?.name || null;\n\nreturn {\n  client: cleanString($json.client),\n  date: normalizeDate($json.date),\n  domain: cleanString($json.domain),\n  domain_type: cleanString($json.domain_type),\n  promo_tag: cleanString($json.promo_tag),\n  file_name: cleanString(filename),\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        -576
+      ],
+      "id": "114e8ea4-085d-4634-be9f-deb07b823b21",
+      "name": "data ready for insert"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { run: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        -576
+      ],
+      "id": "173bc1f5-a88c-4af2-b6ee-5f937e94788a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "process-rebates",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -672
+      ],
+      "id": "3f41b3bd-02b7-4bc8-8c50-6d9acca1f5ed",
+      "name": "Webhook",
+      "webhookId": "02441f1e-6971-4591-b90c-368dce107230"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.flock.com/hooks/sendMessage/db97e8ba-e115-4fd8-a921-81a57126e239",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"text\": \"🚀 Rebate processing started.\\nScanning input files...\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        80,
+        -576
+      ],
+      "id": "5272fcec-caf1-49f4-adba-216602e929c6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0ee08c63-ec37-49e6-b766-a56c129b7854",
+              "name": "rows_processed",
+              "value": "={{ $items().length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        -576
+      ],
+      "id": "912d6996-85af-4e9a-8001-bed209ccb535",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        -480
+      ],
+      "id": "bf56685f-30c4-4456-a0c4-00fd1a728244",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "radixbi-249015",
+          "mode": "list",
+          "cachedResultName": "radixbi",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=radixbi-249015"
+        },
+        "sqlQuery": "/* =========================================================\nSTEP 1: NORMALIZE domain_type VALUES\nConvert different variants to canonical values used by rebate logic\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET domain_type =\nCASE\n  WHEN LOWER(domain_type) IN ('renew', 'renewal') THEN 'renew'\n  WHEN LOWER(domain_type) IN ('new', 'registration', 'create') THEN 'new'\n  WHEN LOWER(domain_type) IN ('premium new', 'premium_new') THEN 'premium new'\n  WHEN LOWER(domain_type) IN ('premium renew', 'premium_renew') THEN 'premium renew'\n  ELSE LOWER(domain_type)\nEND\nWHERE TRUE;\n\n\n/* =========================================================\nSTEP 2: INVALID domain_type CHECK\nFlag rows where domain_type is not one of the supported values\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'INCORRECT_DOMAIN_TYPE',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(domain_type) NOT IN (\n  'new',\n  'renew',\n  'premium new',\n  'premium renew'\n)\nAND validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 3: DOMAIN FORMAT VALIDATION\nCheck if the domain is a valid registrable domain\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'INVALID_DOMAIN_NAME',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE NET.REG_DOMAIN(domain) IS NULL\nAND validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 4: DUPLICATE DOMAIN CHECK\nKeep the earliest record and mark duplicates as errors\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'DUPLICATE_ENTRY',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE domain IN (\n  SELECT domain\n  FROM (\n    SELECT\n      domain,\n      ROW_NUMBER() OVER (\n        PARTITION BY domain\n        ORDER BY created_at\n      ) AS rn\n    FROM `rebate_process_temp.rebate_cleaned_data`\n    WHERE validation_error IS NULL\n  )\n  WHERE rn > 1\n);\n\n\n/* =========================================================\nSTEP 5: MISSING DOMAIN CHECK\nDomain must exist for rebate processing\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'MISSING_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE (domain IS NULL OR TRIM(domain) = '')\nAND validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 6: MISSING DOMAIN_TYPE CHECK\nTransaction type must be provided\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'MISSING_DOMAIN_TYPE',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE (domain_type IS NULL OR TRIM(domain_type) = '')\nAND validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 7: MISSING DATE CHECK\nCreate/Renew date is required for rebate calculations\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'MISSING_DATE',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE date IS NULL\nAND validation_error IS NULL;\n\n/* =========================================================\nSTEP 8: MISSING CLIENT CHECK\nClient must exist for rebate processing\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'MISSING_CLIENT',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE (client IS NULL OR TRIM(client) = '')\nAND validation_error IS NULL;\n\n/* =========================================================\nSTEP: MBG CHECK FOR NEW DOMAINS USING newreg TABLE\nIf domain_type = 'new' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_NEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'new'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.newreg` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR RENEW DOMAINS USING renews TABLE\nIf domain_type = 'renew' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_RENEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'renew'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.renews` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR PREMIUM NEW DOMAINS USING premium_newreg TABLE\nIf domain_type = 'premium new' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_PREMIUM_NEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'premium new'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.premium_newreg` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR PREMIUM RENEW DOMAINS USING premium_renews TABLE\nIf domain_type = 'premium renew' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_PREMIUM_RENEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'premium renew'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.premium_renews` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );/* =========================================================\nSTEP: MBG CHECK FOR NEW DOMAINS USING newreg TABLE\nIf domain_type = 'new' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_NEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'new'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.newreg` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR RENEW DOMAINS USING renews TABLE\nIf domain_type = 'renew' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_RENEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'renew'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.renews` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR PREMIUM NEW DOMAINS USING premium_newreg TABLE\nIf domain_type = 'premium new' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_PREMIUM_NEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'premium new'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.premium_newreg` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* =========================================================\nSTEP: MBG CHECK FOR PREMIUM RENEW DOMAINS USING premium_renews TABLE\nIf domain_type = 'premium renew' and matching record has MBG as NULL\n========================================================= */\n\nUPDATE `rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'MISSING_MBG_FOR_PREMIUM_RENEW_DOMAIN',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE LOWER(r.domain_type) = 'premium renew'\n  AND r.validation_error IS NULL\n  AND EXISTS (\n    SELECT 1\n    FROM `radix_data.premium_renews` n\n    WHERE LOWER(n.domain) = LOWER(r.domain)\n      AND n.mbg IS NULL\n  );\n\n\n/* -------- FIX PREMIUM NEW DOMAINS -------- */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_type = 'premium new',\n  updated_at = CURRENT_TIMESTAMP()\nFROM `radix_data.premium_newreg` p\nWHERE LOWER(r.domain) = LOWER(p.domain)\n  AND LOWER(r.domain_type) = 'new';\n  \n\n\n\n/* -------- FIX PREMIUM RENEW DOMAINS -------- */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_type = 'premium renew',\n  updated_at = CURRENT_TIMESTAMP()\nFROM `radix_data.premium_renews` p\nWHERE LOWER(r.domain) = LOWER(p.domain)\n  AND LOWER(r.domain_type) = 'renew';\n  \n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        2320,
+        -576
+      ],
+      "id": "eef44bdb-7836-49c0-94e8-5da101722164",
+      "name": "Validations Queries",
+      "credentials": {
+        "googleApi": {
+          "id": "a5b3Mun5fdbk0YgU",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "radixbi-249015",
+          "mode": "list",
+          "cachedResultName": "radixbi",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=radixbi-249015"
+        },
+        "sqlQuery": "TRUNCATE TABLE `radixbi-249015.rebate_process_temp.rebate_cleaned_data`;\n\nINSERT INTO `radixbi-249015.rebate_process_temp.rebate_cleaned_data`\n(client, date, domain, domain_type, promo_tag, file_name)\nVALUES\n{{ \n  $items(\"data ready for insert\").map(i => {\n    const r = i.json;\n\n    const esc = (v) => String(v).replace(/\\\\/g, \"\\\\\\\\\").replace(/'/g, \"\\\\'\");\n    const s = (v) => (v === null || v === undefined || v === '') ? 'NULL' : `'${esc(v)}'`;\n    const d = (v) => (v === null || v === undefined || v === '') ? 'NULL' : `DATE '${esc(v)}'`;\n\n    return `(${s(r.client)}, ${d(r.date)}, ${s(r.domain)}, ${s(r.domain_type)}, ${s(r.promo_tag)}, ${s(r.file_name)})`;\n  }).join(\",\\n\")\n}}\n;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        2096,
+        -576
+      ],
+      "id": "28282ccd-da79-45d6-ad11-d1ac1fd88d3c",
+      "name": "Create Temp Table Data",
+      "credentials": {
+        "googleApi": {
+          "id": "a5b3Mun5fdbk0YgU",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.query.token }}",
+                    "rightValue": "36ab6046-3ff4-4d91-b893-ffffe253e910",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "761c4d58-c34c-405f-97d2-6eb55119791f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cb57149f-022c-48b8-b181-e92fccd5d9aa",
+                    "leftValue": "={{ $json.body.text }}",
+                    "rightValue": "process rebates",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -144,
+        -672
+      ],
+      "id": "5e099010-cf5d-47df-a84a-b8b4e7b447d1",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "radixbi-249015",
+          "mode": "list",
+          "cachedResultName": "radixbi",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=radixbi-249015"
+        },
+        "sqlQuery": "WITH summary AS (\n  SELECT\n    CASE\n      WHEN validation_error IS NULL THEN 'SUCCESS'\n      ELSE validation_error\n    END AS result,\n    COUNT(*) AS row_count\n  FROM `rebate_process_temp.rebate_cleaned_data`\n  GROUP BY result\n),\ntotals AS (\n  SELECT\n    COUNT(*) AS total_rows,\n    COUNTIF(validation_error IS NULL) AS success_rows,\n    COUNTIF(validation_error IS NOT NULL) AS error_rows\n  FROM `rebate_process_temp.rebate_cleaned_data`\n)\nSELECT CONCAT(\n  '✅ Rebate processing completed successfully', '\\n\\n',\n  'Total rows: ', CAST(t.total_rows AS STRING), '\\n',\n  'Successful rows: ', CAST(t.success_rows AS STRING), '\\n',\n  'Failed rows: ', CAST(t.error_rows AS STRING), '\\n\\n',\n  'Breakup:', '\\n',\n  STRING_AGG(\n    CONCAT('• ', s.result, ': ', CAST(s.row_count AS STRING)),\n    '\\n'\n    ORDER BY CASE WHEN s.result = 'SUCCESS' THEN 0 ELSE 1 END, s.row_count DESC\n  )\n) AS flock_message\nFROM summary s\nCROSS JOIN totals t\nGROUP BY t.total_rows, t.success_rows, t.error_rows;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        2992,
+        -576
+      ],
+      "id": "2d2aea58-8162-4a00-b668-6c6f27ad9636",
+      "name": "success msg",
+      "credentials": {
+        "googleApi": {
+          "id": "a5b3Mun5fdbk0YgU",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.flock.com/hooks/sendMessage/db97e8ba-e115-4fd8-a921-81a57126e239",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{$json.flock_message}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3216,
+        -576
+      ],
+      "id": "84475f09-4e7e-48d6-bb39-b747b32f739c",
+      "name": "send success msg to flock"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "radixbi-249015",
+          "mode": "list",
+          "cachedResultName": "radixbi",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=radixbi-249015"
+        },
+        "sqlQuery": "/* =========================================================\nSTEP 1: POPULATE DATA FOR NEW DOMAIN REGISTRATIONS\nSource table: radix_data.newreg\nLogic:\n- Pick the latest creation_date per domain\n- Join with rebate_cleaned_data\n- Apply only for domain_type = 'new'\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_id = CAST(n.domain_id AS STRING),\n  createrenewdate = DATE(n.creation_date),\n  period = n.period,\n  registrar_shortname = n.registrar_shortname,\n  client_shortname = n.client_shortname,\n  updated_at = CURRENT_TIMESTAMP()\nFROM (\n  SELECT *\n  FROM (\n    SELECT\n      n.*,\n      ROW_NUMBER() OVER (\n        PARTITION BY LOWER(n.domain)\n        ORDER BY n.creation_date DESC\n      ) AS rn\n    FROM `radix_data.newreg` n\n  )\n  WHERE rn = 1\n) n\nWHERE LOWER(r.domain) = LOWER(n.domain)\n  AND LOWER(r.domain_type) = 'new'\n  AND r.validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 2: POPULATE DATA FOR DOMAIN RENEWALS\nSource table: radix_data.renews\nLogic:\n- Pick the latest renew_date per domain\n- Apply only for domain_type = 'renew'\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_id = CAST(n.domain_id AS STRING),\n  createrenewdate = DATE(n.renew_date),\n  period = n.period,\n  registrar_shortname = n.registrar_shortname,\n  client_shortname = n.client_shortname,\n  updated_at = CURRENT_TIMESTAMP()\nFROM (\n  SELECT *\n  FROM (\n    SELECT\n      n.*,\n      ROW_NUMBER() OVER (\n        PARTITION BY LOWER(n.domain)\n        ORDER BY n.renew_date DESC\n      ) AS rn\n    FROM `radix_data.renews` n\n  )\n  WHERE rn = 1\n) n\nWHERE LOWER(r.domain) = LOWER(n.domain)\n  AND LOWER(r.domain_type) = 'renew'\n  AND r.validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 3: POPULATE DATA FOR PREMIUM NEW REGISTRATIONS\nSource table: radix_data.newreg\nLogic:\n- Pick latest creation_date per domain\n- Apply only for domain_type = 'premium new'\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_id = CAST(n.domain_id AS STRING),\n  createrenewdate = DATE(n.creation_date),\n  period = n.period,\n  registrar_shortname = n.registrar_shortname,\n  client_shortname = n.client_shortname,\n  updated_at = CURRENT_TIMESTAMP()\nFROM (\n  SELECT *\n  FROM (\n    SELECT\n      n.*,\n      ROW_NUMBER() OVER (\n        PARTITION BY LOWER(n.domain)\n        ORDER BY n.creation_date DESC\n      ) AS rn\n    FROM `radix_data.premium_newreg` n\n  )\n  WHERE rn = 1\n) n\nWHERE LOWER(r.domain) = LOWER(n.domain)\n  AND LOWER(r.domain_type) in ('new','premium new')\n  AND r.validation_error IS NULL;\n\n\n/* =========================================================\nSTEP 4: POPULATE DATA FOR PREMIUM RENEWALS\nSource table: radix_data.premium_renews\nLogic:\n- Pick latest renew_date per domain\n- Apply only for domain_type = 'premium renew'\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  domain_id = CAST(n.domain_id AS STRING),\n  createrenewdate = DATE(n.renew_date),\n  period = n.period,\n  registrar_shortname = n.registrar_shortname,\n  client_shortname = n.client_shortname,\n  updated_at = CURRENT_TIMESTAMP()\nFROM (\n  SELECT *\n  FROM (\n    SELECT\n      n.*,\n      ROW_NUMBER() OVER (\n        PARTITION BY LOWER(n.domain)\n        ORDER BY n.renew_date DESC\n      ) AS rn\n    FROM `radix_data.premium_renews` n\n  )\n  WHERE rn = 1\n) n\nWHERE LOWER(r.domain) = LOWER(n.domain)\n  AND LOWER(r.domain_type) in ('renew','premium renew')\n  AND r.validation_error IS NULL;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        2544,
+        -576
+      ],
+      "id": "06005dd4-c453-4629-9c95-74dea9d51df3",
+      "name": "find domain in system",
+      "credentials": {
+        "googleApi": {
+          "id": "a5b3Mun5fdbk0YgU",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "radixbi-249015",
+          "mode": "list",
+          "cachedResultName": "radixbi",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=radixbi-249015"
+        },
+        "sqlQuery": "/* =========================================================\nSTEP: FLAG OLD REGISTRATION / RENEWAL RECORDS\n\nLogic:\n- If createrenewdate is older than 180 days from today\n- Mark the row as validation error\n- Applies only where domain_id exists but record is too old\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'DATE_EXCEEDS_180_DAY_LIMIT',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE\n  createrenewdate IS NOT NULL\n  AND DATE(createrenewdate) < DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)\n  AND validation_error IS NULL;\n/* =========================================================\nSTEP: FLAG DELETED DOMAINS\n\nLogic:\n- If domain_id is still NULL after all lookup steps\n- Check whether the domain exists in cnic_dump.deleted\n- If yes, mark it as deleted domain\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'DOMAIN_MARKED_AS_DELETED',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nFROM `cnic_dump.deleted` d\nWHERE LOWER(r.domain) = LOWER(d.domain)\n  AND r.domain_id IS NULL\n  AND r.validation_error IS NULL;\n/* =========================================================\nSTEP: FLAG RESTORED DOMAINS\nIf domain exists in restore dump but was not matched earlier\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data` r\nSET\n  validation_error = 'DOMAIN_FOUND_IN_RESTORE',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nFROM `cnic_dump.restore` d\nWHERE LOWER(r.domain) = LOWER(d.domain)\n  AND r.domain_id IS NULL\n  AND r.validation_error IS NULL;\n/* =========================================================\nSTEP: FLAG DOMAINS NOT FOUND IN SYSTEM\n\nLogic:\n- If domain lookup steps did not populate domain_id\n- Mark record as validation error\n- Prevent further rebate processing\n========================================================= */\n\nUPDATE `radixbi-249015.rebate_process_temp.rebate_cleaned_data`\nSET\n  validation_error = 'DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE',\n  status = 'ERROR',\n  updated_at = CURRENT_TIMESTAMP()\nWHERE\n  domain_id IS NULL\n  AND validation_error IS NULL;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [
+        2768,
+        -576
+      ],
+      "id": "a021635f-e41a-43fc-907f-c4b4b1d2a340",
+      "name": "post domain finding validations",
+      "credentials": {
+        "googleApi": {
+          "id": "a5b3Mun5fdbk0YgU",
+          "name": "Google BigQuery account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get a list of objects": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get object data or metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get object data or metadata": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "clean data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean data": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "data ready for insert": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create Temp Table Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Get a list of objects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "data ready for insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validations Queries": {
+      "main": [
+        [
+          {
+            "node": "find domain in system",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Temp Table Data": {
+      "main": [
+        [
+          {
+            "node": "Validations Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "success msg": {
+      "main": [
+        [
+          {
+            "node": "send success msg to flock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send success msg to flock": {
+      "main": [
+        []
+      ]
+    },
+    "find domain in system": {
+      "main": [
+        [
+          {
+            "node": "post domain finding validations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "post domain finding validations": {
+      "main": [
+        [
+          {
+            "node": "success msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "25f1e7f9-42df-41dd-80a9-87b87a8d7e56",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "661783756ab48a9114a6cfa13d28c832f1219428b6df7b0a38076aa190737950"
+  },
+  "id": "IYcXoxa3opDQHw1dZYZQU",
+  "tags": []
+}

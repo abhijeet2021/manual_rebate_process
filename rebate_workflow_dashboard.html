@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manual Rebate Process — Workflow Documentation</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3352;
+    --accent: #6c8ef5;
+    --accent2: #4ade80;
+    --accent3: #f59e0b;
+    --accent4: #f87171;
+    --accent5: #a78bfa;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --radius: 10px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .header-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent5));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .header-text h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-text p { color: var(--text2); font-size: 13px; margin-top: 2px; }
+  .header-badges { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge-green { background: rgba(74,222,128,0.12); color: var(--accent2); border: 1px solid rgba(74,222,128,0.25); }
+  .badge-blue { background: rgba(108,142,245,0.12); color: var(--accent); border: 1px solid rgba(108,142,245,0.25); }
+  .badge-purple { background: rgba(167,139,250,0.12); color: var(--accent5); border: 1px solid rgba(167,139,250,0.25); }
+
+  /* ── Nav Tabs ── */
+  .nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex; gap: 0; overflow-x: auto;
+  }
+  .nav-tab {
+    padding: 14px 20px; font-size: 13px; font-weight: 500;
+    color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
+    white-space: nowrap; transition: all .2s; user-select: none;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Main Layout ── */
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 15px; font-weight: 700; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .icon { font-size: 18px; }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .container { padding: 20px; }
+    .header { padding: 16px 20px; }
+    .nav { padding: 0 20px; }
+  }
+
+  /* ── Stat Cards ── */
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-card .stat-num {
+    font-size: 32px; font-weight: 800; margin: 8px 0 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent5));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-card .stat-label { color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .stat-icon { font-size: 24px; }
+
+  /* ── Flow Diagram ── */
+  .flow-wrap {
+    overflow-x: auto;
+    padding: 24px 0;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: max-content;
+    padding: 8px 0;
+  }
+  .flow-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  .flow-section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); margin-bottom: 6px; text-align: center;
+  }
+  .flow-node {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    cursor: pointer; padding: 0 8px;
+  }
+  .flow-box {
+    border-radius: 10px; padding: 10px 14px;
+    font-size: 11px; font-weight: 600; text-align: center;
+    min-width: 110px; max-width: 130px;
+    transition: transform .15s, box-shadow .15s;
+    border: 1.5px solid transparent;
+    line-height: 1.4;
+  }
+  .flow-box:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+  .flow-box.active-node { box-shadow: 0 0 0 3px var(--accent) !important; }
+
+  .fn-trigger { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80; }
+  .fn-notify  { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: #f59e0b; }
+  .fn-gcs     { background: rgba(108,142,245,0.12); border-color: rgba(108,142,245,0.35); color: #6c8ef5; }
+  .fn-filter  { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); color: #a78bfa; }
+  .fn-process { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.35); color: #38bdf8; }
+  .fn-bq      { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.35); color: #fb923c; }
+  .fn-validate{ background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.35); color: #f87171; }
+  .fn-done    { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80; }
+
+  .flow-arrow {
+    color: var(--text3); font-size: 18px; padding: 0 4px;
+    display: flex; align-items: center;
+  }
+  .flow-sub-label {
+    font-size: 9px; color: var(--text3); margin-top: 4px; text-align: center; max-width: 110px;
+  }
+
+  /* ── Node Detail Panel ── */
+  .node-detail {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 20px;
+    display: none;
+  }
+  .node-detail.visible { display: block; }
+  .node-detail h3 { font-size: 15px; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+  .nd-grid { display: grid; grid-template-columns: 160px 1fr; gap: 8px 16px; }
+  .nd-key { color: var(--text2); font-size: 12px; }
+  .nd-val { font-size: 12px; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px; text-align: left;
+    font-weight: 600; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text2);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(46,51,82,0.5); transition: background .15s; }
+  tbody tr:hover { background: rgba(108,142,245,0.05); }
+  tbody td { padding: 10px 14px; vertical-align: top; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  }
+  .tag-error { background: rgba(248,113,113,0.15); color: #f87171; }
+  .tag-warn  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .tag-ok    { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .tag-blue  { background: rgba(108,142,245,0.15); color: #6c8ef5; }
+  .tag-purple{ background: rgba(167,139,250,0.15); color: #a78bfa; }
+
+  /* ── Code Blocks ── */
+  .code-block {
+    background: #0a0c12;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: #c9d1d9;
+    overflow-x: auto;
+    line-height: 1.7;
+    margin: 12px 0;
+  }
+  .code-block .kw { color: #ff79c6; }
+  .code-block .fn { color: #50fa7b; }
+  .code-block .str { color: #f1fa8c; }
+  .code-block .cm { color: #6272a4; font-style: italic; }
+  .code-block .num { color: #bd93f9; }
+
+  /* ── Accordion ── */
+  .accordion-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+  .accordion-header {
+    padding: 14px 18px; background: var(--surface2);
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    font-weight: 600; font-size: 13px; user-select: none;
+    transition: background .15s;
+  }
+  .accordion-header:hover { background: rgba(108,142,245,0.08); }
+  .accordion-header .chevron { transition: transform .2s; font-size: 12px; }
+  .accordion-header.open .chevron { transform: rotate(180deg); }
+  .accordion-body { padding: 16px 18px; display: none; }
+  .accordion-body.open { display: block; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 32px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 9px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 24px; }
+  .tl-dot {
+    position: absolute; left: -28px; top: 4px;
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 800;
+  }
+  .tl-dot.green { background: rgba(74,222,128,0.2); border: 2px solid var(--accent2); color: var(--accent2); }
+  .tl-dot.blue  { background: rgba(108,142,245,0.2); border: 2px solid var(--accent); color: var(--accent); }
+  .tl-dot.orange{ background: rgba(251,146,60,0.2); border: 2px solid #fb923c; color: #fb923c; }
+  .tl-dot.red   { background: rgba(248,113,113,0.2); border: 2px solid var(--accent4); color: var(--accent4); }
+  .tl-dot.purple{ background: rgba(167,139,250,0.2); border: 2px solid var(--accent5); color: var(--accent5); }
+  .tl-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .tl-sub { color: var(--text2); font-size: 12px; }
+  .tl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+  /* ── Callout ── */
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 12px 0;
+    border-left: 3px solid; font-size: 13px;
+  }
+  .callout-info  { background: rgba(108,142,245,0.08); border-color: var(--accent); }
+  .callout-warn  { background: rgba(245,158,11,0.08); border-color: var(--accent3); }
+  .callout-ok    { background: rgba(74,222,128,0.08); border-color: var(--accent2); }
+  .callout-error { background: rgba(248,113,113,0.08); border-color: var(--accent4); }
+  .callout strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── Section Titles ── */
+  .section-title {
+    font-size: 18px; font-weight: 800; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Pill List ── */
+  .pill-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+
+  /* ── KT Section ── */
+  .kt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .kt-card-header {
+    padding: 16px 20px;
+    background: var(--surface2);
+    display: flex; gap: 12px; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .kt-card-header .kt-num {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .kt-card-header h3 { font-size: 14px; font-weight: 700; }
+  .kt-card-header p { color: var(--text2); font-size: 12px; margin-top: 2px; }
+  .kt-card-body { padding: 20px; }
+
+  /* ── Tooltip ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #0a0c12; border: 1px solid var(--border);
+    color: var(--text); padding: 6px 10px; border-radius: 6px;
+    font-size: 11px; white-space: nowrap; z-index: 200; pointer-events: none;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+  .mt8 { margin-top: 8px; }
+  .mt12 { margin-top: 12px; }
+  .mt16 { margin-top: 16px; }
+  .text2 { color: var(--text2); }
+  .text3 { color: var(--text3); }
+  .fs12 { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-icon">♻️</div>
+  <div class="header-text">
+    <h1>Manual Rebate Process — Workflow Documentation</h1>
+    <p>n8n Automation · Google Cloud Storage · BigQuery · Flock Notifications</p>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-green">Active</span>
+    <span class="badge badge-blue">n8n</span>
+    <span class="badge badge-purple">GCP</span>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('overview', this)">🏠 Overview</div>
+  <div class="nav-tab" onclick="switchTab('flow', this)">🔀 Flow Diagram</div>
+  <div class="nav-tab" onclick="switchTab('validations', this)">✅ Validation Rules</div>
+  <div class="nav-tab" onclick="switchTab('data', this)">🗃️ Data Architecture</div>
+  <div class="nav-tab" onclick="switchTab('kt', this)">📘 KT / Runbook</div>
+  <div class="nav-tab" onclick="switchTab('errors', this)">⚠️ Error Codes</div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════
+     TAB: OVERVIEW
+═══════════════════════════════════════════ -->
+<div id="tab-overview" class="tab-content active">
+
+  <div class="section-title">🏠 Executive Overview</div>
+
+  <!-- CTO Summary -->
+  <div class="card" style="border-color: rgba(108,142,245,0.3);">
+    <div class="card-title"><span class="icon">🎯</span> What This Does (CTO Level)</div>
+    <p style="color: var(--text2); font-size: 13px; line-height: 1.8; max-width: 860px;">
+      This workflow automates the <strong style="color: var(--text);">manual rebate processing pipeline</strong> for domain registrations and renewals.
+      Previously a manual, error-prone process, it now runs on-demand via a Flock chat command or API call.
+      Files uploaded to a Google Cloud Storage bucket are automatically ingested, validated against 13+ business rules,
+      enriched with registry data from BigQuery, and a structured summary report is sent back to the team on Flock.
+    </p>
+    <div class="callout callout-ok mt12">
+      <strong>Business Impact</strong>
+      Eliminates manual spreadsheet handling, enforces data quality before rebate disbursement, and provides instant visibility into processing status.
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4" style="margin-bottom: 20px;">
+    <div class="stat-card">
+      <div class="stat-icon">⚙️</div>
+      <div class="stat-num">15</div>
+      <div class="stat-label">Workflow Nodes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🛡️</div>
+      <div class="stat-num">13</div>
+      <div class="stat-label">Validation Rules</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🗄️</div>
+      <div class="stat-num">4</div>
+      <div class="stat-label">BigQuery Queries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔔</div>
+      <div class="stat-num">2</div>
+      <div class="stat-label">Flock Alerts</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Pipeline Stages -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Pipeline Stages</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot green">1</div>
+          <div class="tl-title">Trigger</div>
+          <div class="tl-sub">Webhook (Flock command "process rebates" + token) or manual button click</div>
+          <div class="tl-tags"><span class="tag tag-blue">Webhook</span><span class="tag tag-purple">Manual</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot blue">2</div>
+          <div class="tl-title">File Ingestion</div>
+          <div class="tl-sub">Scan GCS bucket, filter .xlsx/.csv files, download and parse rows</div>
+          <div class="tl-tags"><span class="tag tag-blue">Google Cloud Storage</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot blue">3</div>
+          <div class="tl-title">Data Cleaning</div>
+          <div class="tl-sub">Normalize domains, parse dates, deduplicate, standardize domain types</div>
+          <div class="tl-tags"><span class="tag tag-purple">JavaScript</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot orange">4</div>
+          <div class="tl-title">Load to BigQuery</div>
+          <div class="tl-sub">Truncate & insert cleaned data into temp table</div>
+          <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot red">5</div>
+          <div class="tl-title">Validate</div>
+          <div class="tl-sub">Run 13 SQL validation rules, flag errors, auto-upgrade premium domains</div>
+          <div class="tl-tags"><span class="tag tag-error">SQL</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot orange">6</div>
+          <div class="tl-title">Domain Enrichment</div>
+          <div class="tl-sub">Lookup domain_id, registration date, registrar from registry tables</div>
+          <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot red">7</div>
+          <div class="tl-title">Post-lookup Validation</div>
+          <div class="tl-sub">Check 180-day limit, deleted/restored domains, not-found domains</div>
+          <div class="tl-tags"><span class="tag tag-error">SQL</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot green">8</div>
+          <div class="tl-title">Report & Notify</div>
+          <div class="tl-sub">Generate summary (success/error breakdown) and post to Flock</div>
+          <div class="tl-tags"><span class="tag tag-ok">Flock</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div>
+      <div class="card">
+        <div class="card-title"><span class="icon">🛠️</span> Technology Stack</div>
+        <table>
+          <thead><tr><th>Component</th><th>Technology</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>Orchestration</td><td><span class="tag tag-blue">n8n</span></td><td>Workflow automation engine</td></tr>
+            <tr><td>File Storage</td><td><span class="tag tag-blue">Google Cloud Storage</span></td><td>Input file bucket</td></tr>
+            <tr><td>Data Warehouse</td><td><span class="tag tag-blue">BigQuery</span></td><td>Validation, enrichment, reporting</td></tr>
+            <tr><td>Messaging</td><td><span class="tag tag-purple">Flock</span></td><td>Team notifications</td></tr>
+            <tr><td>Auth (GCS)</td><td><span class="tag tag-ok">OAuth 2.0</span></td><td>Storage access</td></tr>
+            <tr><td>Auth (BQ)</td><td><span class="tag tag-ok">Service Account</span></td><td>BigQuery access</td></tr>
+            <tr><td>Scripting</td><td><span class="tag tag-purple">JavaScript (n8n)</span></td><td>Data transformation</td></tr>
+            <tr><td>Query Language</td><td><span class="tag tag-orange">SQL (BigQuery)</span></td><td>Validation + enrichment</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card mt12" style="margin-top: 0;">
+        <div class="card-title"><span class="icon">🔑</span> Key Infrastructure</div>
+        <div class="nd-grid mt8" style="margin-top: 0;">
+          <div class="nd-key">GCS Bucket</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">manual_rebate_process</code></div>
+          <div class="nd-key">BQ Project</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">radixbi-249015</code></div>
+          <div class="nd-key">Temp Table</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">rebate_process_temp.rebate_cleaned_data</code></div>
+          <div class="nd-key">Webhook Path</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">POST /process-rebates</code></div>
+          <div class="nd-key">Trigger Command</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">"process rebates" + token</code></div>
+          <div class="nd-key">Input Formats</div><div class="nd-val"><span class="tag tag-blue">.xlsx</span> <span class="tag tag-blue">.csv</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Domain Types -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🌐</span> Supported Domain Types</div>
+    <div class="grid-4">
+      <div style="background: var(--surface2); border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+        <div style="color: #6c8ef5; font-weight: 700; font-size: 13px; margin-bottom: 6px;">new</div>
+        <div style="color: var(--text2); font-size: 12px;">New domain registration. Also accepts: <em>registration, create</em></div>
+        <div style="margin-top: 8px;"><span class="tag tag-blue">radix_data.newreg</span></div>
+      </div>
+      <div style="background: var(--surface2); border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+        <div style="color: #4ade80; font-weight: 700; font-size: 13px; margin-bottom: 6px;">renew</div>
+        <div style="color: var(--text2); font-size: 12px;">Domain renewal. Also accepts: <em>renewal</em></div>
+        <div style="margin-top: 8px;"><span class="tag tag-ok">radix_data.renews</span></div>
+      </div>
+      <div style="background: var(--surface2); border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+        <div style="color: #a78bfa; font-weight: 700; font-size: 13px; margin-bottom: 6px;">premium new</div>
+        <div style="color: var(--text2); font-size: 12px;">Premium new registration. Also accepts: <em>premium_new</em>. Auto-upgraded from "new".</div>
+        <div style="margin-top: 8px;"><span class="tag tag-purple">radix_data.premium_newreg</span></div>
+      </div>
+      <div style="background: var(--surface2); border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+        <div style="color: #fb923c; font-weight: 700; font-size: 13px; margin-bottom: 6px;">premium renew</div>
+        <div style="color: var(--text2); font-size: 12px;">Premium renewal. Also accepts: <em>premium_renew</em>. Auto-upgraded from "renew".</div>
+        <div style="margin-top: 8px;"><span class="tag tag-warn">radix_data.premium_renews</span></div>
+      </div>
+    </div>
+    <div class="callout callout-info mt12">
+      <strong>Auto-Upgrade Logic</strong>
+      If a domain is submitted as type "new" but exists in the <code>premium_newreg</code> table, it is automatically upgraded to "premium new". Same logic applies for "renew" → "premium renew". This prevents incorrect rebate calculation.
+    </div>
+  </div>
+
+</div><!-- end overview -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB: FLOW DIAGRAM
+═══════════════════════════════════════════ -->
+<div id="tab-flow" class="tab-content">
+
+  <div class="section-title">🔀 Interactive Flow Diagram</div>
+  <p class="text2 fs12" style="margin-bottom: 16px;">Click any node to see details. Nodes are color-coded by type.</p>
+
+  <!-- Legend -->
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#4ade80;display:inline-block;"></span>Trigger</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block;"></span>Notify</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#6c8ef5;display:inline-block;"></span>GCS</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#a78bfa;display:inline-block;"></span>Filter/Switch</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#38bdf8;display:inline-block;"></span>Transform</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;"><span style="width:10px;height:10px;border-radius:3px;background:#fb923c;display:inline-block;"></span>BigQuery</div>
+  </div>
+
+  <div class="card" style="padding: 12px;">
+    <div class="flow-wrap">
+
+      <!-- Row 1: Triggers -->
+      <div style="display: flex; align-items: flex-start; gap: 0; min-width: max-content; padding: 8px 0;">
+
+        <div class="flow-node" onclick="showNode('webhook')">
+          <div class="flow-box fn-trigger" id="fn-webhook">🔗 Webhook<br><span style="font-size:9px;opacity:0.7">POST /process-rebates</span></div>
+          <div class="flow-sub-label">or</div>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:4px;padding: 0 4px;">
+          <div class="flow-arrow">→</div>
+        </div>
+
+        <div class="flow-node" onclick="showNode('switch')">
+          <div class="flow-box fn-filter" id="fn-switch">⚡ Switch<br><span style="font-size:9px;opacity:0.7">Token + command check</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('manual')">
+          <div class="flow-box fn-trigger" id="fn-manual">▶ Manual<br><span style="font-size:9px;opacity:0.7">Execute Workflow</span></div>
+          <div class="flow-sub-label"> </div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('flock-start')">
+          <div class="flow-box fn-notify" id="fn-flock-start">🔔 Flock Alert<br><span style="font-size:9px;opacity:0.7">Processing started</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('list-objects')">
+          <div class="flow-box fn-gcs" id="fn-list-objects">☁ List GCS<br><span style="font-size:9px;opacity:0.7">List all objects</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('if-filter')">
+          <div class="flow-box fn-filter" id="fn-if-filter">🔍 Filter<br><span style="font-size:9px;opacity:0.7">.xlsx or .csv only</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('get-object')">
+          <div class="flow-box fn-gcs" id="fn-get-object">⬇ Download<br><span style="font-size:9px;opacity:0.7">Get file binary</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('extract')">
+          <div class="flow-box fn-process" id="fn-extract">📄 Extract<br><span style="font-size:9px;opacity:0.7">Parse XLSX rows</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('clean')">
+          <div class="flow-box fn-process" id="fn-clean">🧹 Clean Data<br><span style="font-size:9px;opacity:0.7">JS transform</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('edit-fields')">
+          <div class="flow-box fn-process" id="fn-edit-fields">✏️ Edit Fields<br><span style="font-size:9px;opacity:0.7">Count rows</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('data-ready')">
+          <div class="flow-box fn-process" id="fn-data-ready">✅ Data Ready<br><span style="font-size:9px;opacity:0.7">Final normalize</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('js-signal')">
+          <div class="flow-box fn-process" id="fn-js-signal">⚡ Signal<br><span style="font-size:9px;opacity:0.7">run: true</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('create-temp')">
+          <div class="flow-box fn-bq" id="fn-create-temp">🗄 Load BQ<br><span style="font-size:9px;opacity:0.7">TRUNCATE + INSERT</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('validations')">
+          <div class="flow-box fn-validate" id="fn-validations">🛡 Validate<br><span style="font-size:9px;opacity:0.7">13 SQL rules</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('find-domain')">
+          <div class="flow-box fn-bq" id="fn-find-domain">🔎 Enrich<br><span style="font-size:9px;opacity:0.7">Domain lookup</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('post-val')">
+          <div class="flow-box fn-validate" id="fn-post-val">🛡 Post-Validate<br><span style="font-size:9px;opacity:0.7">180d / deleted</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('success-msg')">
+          <div class="flow-box fn-bq" id="fn-success-msg">📊 Summary<br><span style="font-size:9px;opacity:0.7">BQ report query</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('send-flock')">
+          <div class="flow-box fn-notify" id="fn-send-flock">📨 Send Flock<br><span style="font-size:9px;opacity:0.7">Final report</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Node Detail Panel -->
+  <div class="node-detail" id="node-detail">
+    <h3 id="nd-title">Node Details</h3>
+    <div class="nd-grid" id="nd-body"></div>
+  </div>
+
+</div><!-- end flow -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB: VALIDATIONS
+═══════════════════════════════════════════ -->
+<div id="tab-validations" class="tab-content">
+
+  <div class="section-title">✅ Validation Rules</div>
+
+  <div class="callout callout-info" style="margin-bottom: 20px;">
+    <strong>How Validation Works</strong>
+    All rows are loaded into a BigQuery temp table first. SQL UPDATE statements then flag invalid rows with an error code and status='ERROR'.
+    Valid rows (validation_error IS NULL) proceed to domain enrichment. Multiple passes prevent false positives.
+  </div>
+
+  <!-- Pre-Load (JS) Validations -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🟦</span> Phase 1 — JavaScript Pre-Processing (Before BigQuery Load)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Rule</th><th>What It Does</th><th>Result if Fails</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-blue">P1</span></td>
+            <td>Domain Cleaning</td>
+            <td>Strips protocol, path, port, trailing dots. Converts Unicode (IDN) to ASCII. Normalizes to lowercase.</td>
+            <td>Row silently dropped (no domain = skip)</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">P2</span></td>
+            <td>Deduplication</td>
+            <td>Within the same file, only the first occurrence of a domain is kept.</td>
+            <td>Subsequent duplicates dropped before insert</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">P3</span></td>
+            <td>Date Parsing</td>
+            <td>Handles Excel serial numbers, ISO format, DD/MM/YYYY, DD-MM-YYYY. Falls back to file's first row date, then today.</td>
+            <td>Uses fallback date, never fails</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">P4</span></td>
+            <td>Domain Type Normalization</td>
+            <td>Maps variants like "renewal" → "renew", "registration" → "new", "premium_new" → "premium new"</td>
+            <td>Passes raw value if unrecognized (caught later)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SQL Validations -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🟧</span> Phase 2 — SQL Validations (In BigQuery Temp Table)</div>
+    <div class="callout callout-warn" style="margin-bottom: 12px;">
+      <strong>Note</strong>
+      Rules are evaluated in order. Once a row has a <code>validation_error</code> set, subsequent rules skip it (<code>AND validation_error IS NULL</code>).
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Error Code</th><th>Trigger Condition</th><th>Severity</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-blue">S1</span></td>
+            <td><code>INCORRECT_DOMAIN_TYPE</code></td>
+            <td>domain_type not in: new, renew, premium new, premium renew</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S2</span></td>
+            <td><code>INVALID_DOMAIN_NAME</code></td>
+            <td><code>NET.REG_DOMAIN(domain)</code> returns NULL — not a valid registrable domain</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S3</span></td>
+            <td><code>DUPLICATE_ENTRY</code></td>
+            <td>Same domain appears more than once; all except the earliest created_at are flagged</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S4</span></td>
+            <td><code>MISSING_DOMAIN</code></td>
+            <td>domain column is NULL or empty string</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S5</span></td>
+            <td><code>MISSING_DOMAIN_TYPE</code></td>
+            <td>domain_type column is NULL or empty string</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S6</span></td>
+            <td><code>MISSING_DATE</code></td>
+            <td>date column is NULL</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S7</span></td>
+            <td><code>MISSING_CLIENT</code></td>
+            <td>client column is NULL or empty string</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S8</span></td>
+            <td><code>MISSING_MBG_FOR_NEW_DOMAIN</code></td>
+            <td>domain_type='new' and domain exists in newreg with mbg=NULL</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S9</span></td>
+            <td><code>MISSING_MBG_FOR_RENEW_DOMAIN</code></td>
+            <td>domain_type='renew' and domain exists in renews with mbg=NULL</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S10</span></td>
+            <td><code>MISSING_MBG_FOR_PREMIUM_NEW_DOMAIN</code></td>
+            <td>domain_type='premium new' and domain in premium_newreg with mbg=NULL</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">S11</span></td>
+            <td><code>MISSING_MBG_FOR_PREMIUM_RENEW_DOMAIN</code></td>
+            <td>domain_type='premium renew' and domain in premium_renews with mbg=NULL</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Auto-Fixes -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🔧</span> Auto-Fix Rules (Applied After Validation)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fix</th><th>Condition</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-ok">Auto-Upgrade</span></td>
+            <td>domain_type='new' AND domain found in <code>premium_newreg</code></td>
+            <td>Sets domain_type = 'premium new'</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-ok">Auto-Upgrade</span></td>
+            <td>domain_type='renew' AND domain found in <code>premium_renews</code></td>
+            <td>Sets domain_type = 'premium renew'</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Post-Enrichment Validations -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🟥</span> Phase 3 — Post-Enrichment Validations</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Error Code</th><th>Trigger Condition</th><th>Severity</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-blue">E1</span></td>
+            <td><code>DATE_EXCEEDS_180_DAY_LIMIT</code></td>
+            <td>createrenewdate is older than 180 days from today</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">E2</span></td>
+            <td><code>DOMAIN_MARKED_AS_DELETED</code></td>
+            <td>domain_id is still NULL and domain found in <code>cnic_dump.deleted</code></td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">E3</span></td>
+            <td><code>DOMAIN_FOUND_IN_RESTORE</code></td>
+            <td>domain_id is still NULL and domain found in <code>cnic_dump.restore</code></td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">E4</span></td>
+            <td><code>DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE</code></td>
+            <td>domain_id is still NULL after all lookup steps</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end validations -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB: DATA ARCHITECTURE
+═══════════════════════════════════════════ -->
+<div id="tab-data" class="tab-content">
+
+  <div class="section-title">🗃️ Data Architecture</div>
+
+  <div class="grid-2">
+    <!-- Input Schema -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📥</span> Input File Schema (XLSX / CSV)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Column</th><th>Required</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>domain</code></td><td><span class="tag tag-error">Required</span></td><td>Domain name (any format, cleaned in JS)</td></tr>
+            <tr><td><code>domain_type</code></td><td><span class="tag tag-error">Required</span></td><td>new / renew / premium new / premium renew</td></tr>
+            <tr><td><code>client</code></td><td><span class="tag tag-error">Required</span></td><td>Client/reseller identifier</td></tr>
+            <tr><td><code>date</code></td><td><span class="tag tag-warn">Optional</span></td><td>Registration/renewal date. Falls back to file_date, then today</td></tr>
+            <tr><td><code>promo_tag</code></td><td><span class="tag tag-ok">Optional</span></td><td>Promotional tag for rebate category</td></tr>
+            <tr><td><code>file_date</code></td><td><span class="tag tag-ok">Optional</span></td><td>Fallback date if row date is missing</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Temp Table Schema -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🗄️</span> BigQuery Temp Table Schema</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Column</th><th>Type</th><th>Set By</th></tr></thead>
+          <tbody>
+            <tr><td><code>client</code></td><td>STRING</td><td>Input file</td></tr>
+            <tr><td><code>date</code></td><td>DATE</td><td>Input file</td></tr>
+            <tr><td><code>domain</code></td><td>STRING</td><td>Input file</td></tr>
+            <tr><td><code>domain_type</code></td><td>STRING</td><td>Input file / auto-upgraded</td></tr>
+            <tr><td><code>promo_tag</code></td><td>STRING</td><td>Input file</td></tr>
+            <tr><td><code>file_name</code></td><td>STRING</td><td>GCS object name</td></tr>
+            <tr><td><code>domain_id</code></td><td>STRING</td><td>Registry lookup (newreg/renews)</td></tr>
+            <tr><td><code>createrenewdate</code></td><td>DATE</td><td>Registry lookup</td></tr>
+            <tr><td><code>period</code></td><td>INT</td><td>Registry lookup</td></tr>
+            <tr><td><code>registrar_shortname</code></td><td>STRING</td><td>Registry lookup</td></tr>
+            <tr><td><code>client_shortname</code></td><td>STRING</td><td>Registry lookup</td></tr>
+            <tr><td><code>validation_error</code></td><td>STRING</td><td>SQL validation steps</td></tr>
+            <tr><td><code>status</code></td><td>STRING</td><td>Set to 'ERROR' when flagged</td></tr>
+            <tr><td><code>created_at</code></td><td>TIMESTAMP</td><td>Auto (insert time)</td></tr>
+            <tr><td><code>updated_at</code></td><td>TIMESTAMP</td><td>Updated on each SQL pass</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source Tables -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📚</span> BigQuery Source Tables</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Dataset</th><th>Used For</th><th>Key Join</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>newreg</code></td><td>radix_data</td>
+            <td>New domain registration lookup</td>
+            <td>LOWER(domain) — picks latest by creation_date</td>
+          </tr>
+          <tr>
+            <td><code>renews</code></td><td>radix_data</td>
+            <td>Domain renewal lookup</td>
+            <td>LOWER(domain) — picks latest by renew_date</td>
+          </tr>
+          <tr>
+            <td><code>premium_newreg</code></td><td>radix_data</td>
+            <td>Premium new registration lookup + auto-upgrade check</td>
+            <td>LOWER(domain) — picks latest by creation_date</td>
+          </tr>
+          <tr>
+            <td><code>premium_renews</code></td><td>radix_data</td>
+            <td>Premium renewal lookup + auto-upgrade check</td>
+            <td>LOWER(domain) — picks latest by renew_date</td>
+          </tr>
+          <tr>
+            <td><code>deleted</code></td><td>cnic_dump</td>
+            <td>Deleted domain check (post-enrichment)</td>
+            <td>LOWER(domain)</td>
+          </tr>
+          <tr>
+            <td><code>restore</code></td><td>cnic_dump</td>
+            <td>Restored domain check (post-enrichment)</td>
+            <td>LOWER(domain)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Data Flow Diagram -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🔄</span> Data Flow</div>
+    <div class="code-block">
+<span class="cm">/* Input */</span>
+GCS Bucket: manual_rebate_process
+  └── [file.xlsx / file.csv]
+        ├── domain
+        ├── domain_type
+        ├── client
+        ├── date
+        └── promo_tag
+
+<span class="cm">/* After JavaScript Cleaning */</span>
+Clean rows (deduped, normalized, ASCII domains)
+  └── INSERT → rebate_process_temp.rebate_cleaned_data
+
+<span class="cm">/* After SQL Validation Pass 1 */</span>
+Rows tagged with validation_error OR remain clean
+
+<span class="cm">/* After Auto-Fix */</span>
+'new' → 'premium new'  (if in premium_newreg)
+'renew' → 'premium renew'  (if in premium_renews)
+
+<span class="cm">/* After Domain Enrichment */</span>
+Clean rows enriched with:
+  domain_id, createrenewdate, period,
+  registrar_shortname, client_shortname
+
+<span class="cm">/* After Post-Validation */</span>
+Final status:
+  ✅ validation_error IS NULL → SUCCESS
+  ❌ validation_error IS NOT NULL → ERROR
+
+<span class="cm">/* Final Report (sent to Flock) */</span>
+Total rows: N
+Successful rows: N
+Failed rows: N
+Breakup: [error_code: count]
+    </div>
+  </div>
+
+</div><!-- end data -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB: KT / RUNBOOK
+═══════════════════════════════════════════ -->
+<div id="tab-kt" class="tab-content">
+
+  <div class="section-title">📘 KT / Knowledge Transfer Runbook</div>
+
+  <div class="callout callout-info" style="margin-bottom: 20px;">
+    <strong>Audience</strong>
+    This section is written for new team members or engineers taking over maintenance. It covers how to trigger the workflow, how to read results, and what to do when things break.
+  </div>
+
+  <!-- How to Trigger -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(74,222,128,0.15); color: var(--accent2);">1</div>
+      <div>
+        <h3>How to Trigger the Workflow</h3>
+        <p>Two ways to start rebate processing</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <div class="grid-2">
+        <div>
+          <div style="font-weight: 700; margin-bottom: 8px; color: var(--accent);">Option A — Flock Chat Command</div>
+          <p class="text2 fs12" style="margin-bottom: 10px;">Send this exact message to the Flock channel connected to the webhook:</p>
+          <div class="code-block">process rebates</div>
+          <p class="text2 fs12">The webhook also validates a secret token in the query parameter. This is configured in the Switch node and should match the token in your Flock webhook URL.</p>
+        </div>
+        <div>
+          <div style="font-weight: 700; margin-bottom: 8px; color: var(--accent5);">Option B — Manual Execute in n8n</div>
+          <p class="text2 fs12" style="margin-bottom: 10px;">Open the workflow in n8n and click the <strong>Execute Workflow</strong> button. This bypasses the Switch/token validation and goes straight to file processing.</p>
+          <div class="callout callout-warn">
+            <strong>Note</strong>
+            Manual execution skips the Webhook → Switch path. Both paths merge at the HTTP Request (Flock start notification) node.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Upload Files -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(108,142,245,0.15); color: var(--accent);">2</div>
+      <div>
+        <h3>How to Upload Input Files</h3>
+        <p>File format requirements and GCS upload</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <ol style="color: var(--text2); font-size: 13px; line-height: 2; padding-left: 20px;">
+        <li>Prepare your file as <strong>.xlsx</strong> or <strong>.csv</strong></li>
+        <li>Required columns: <code>domain</code>, <code>domain_type</code>, <code>client</code></li>
+        <li>Optional columns: <code>date</code>, <code>promo_tag</code></li>
+        <li>Upload the file to the GCS bucket: <code>manual_rebate_process</code></li>
+        <li>Trigger the workflow (see above)</li>
+      </ol>
+      <div class="callout callout-warn">
+        <strong>Important</strong>
+        The workflow processes ALL .xlsx/.csv files in the bucket at the time of execution. Remove old files from the bucket before running to avoid reprocessing stale data.
+      </div>
+    </div>
+  </div>
+
+  <!-- Reading Results -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(251,146,60,0.15); color: #fb923c;">3</div>
+      <div>
+        <h3>Reading the Flock Report</h3>
+        <p>Understanding the output notification</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <p class="text2 fs12" style="margin-bottom: 12px;">After processing, a Flock message is sent like this:</p>
+      <div class="code-block">✅ Rebate processing completed successfully
+
+Total rows: 120
+Successful rows: 115
+Failed rows: 5
+
+Breakup:
+• SUCCESS: 115
+• MISSING_MBG_FOR_NEW_DOMAIN: 3
+• DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE: 2</div>
+      <p class="text2 fs12" style="margin-top: 12px;">Each error code tells you exactly what went wrong. See the <strong>Error Codes</strong> tab for remediation steps.</p>
+    </div>
+  </div>
+
+  <!-- Querying Results -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(167,139,250,0.15); color: var(--accent5);">4</div>
+      <div>
+        <h3>Querying Results in BigQuery</h3>
+        <p>How to inspect processed data</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <div class="code-block">
+<span class="cm">-- See all successful rows</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="str">`rebate_process_temp.rebate_cleaned_data`</span>
+<span class="kw">WHERE</span> validation_error <span class="kw">IS NULL</span>;
+
+<span class="cm">-- See all error rows with breakdown</span>
+<span class="kw">SELECT</span> validation_error, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cnt
+<span class="kw">FROM</span> <span class="str">`rebate_process_temp.rebate_cleaned_data`</span>
+<span class="kw">WHERE</span> validation_error <span class="kw">IS NOT NULL</span>
+<span class="kw">GROUP BY</span> validation_error
+<span class="kw">ORDER BY</span> cnt <span class="kw">DESC</span>;
+
+<span class="cm">-- Inspect specific error</span>
+<span class="kw">SELECT</span> domain, domain_type, client, date
+<span class="kw">FROM</span> <span class="str">`rebate_process_temp.rebate_cleaned_data`</span>
+<span class="kw">WHERE</span> validation_error = <span class="str">'DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE'</span>;
+      </div>
+      <div class="callout callout-warn">
+        <strong>Caution</strong>
+        The temp table is TRUNCATED and reloaded every time the workflow runs. If you need to preserve data, export it before re-triggering.
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(248,113,113,0.15); color: var(--accent4);">5</div>
+      <div>
+        <h3>Credentials & Access</h3>
+        <p>What credentials are needed and where they're stored</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Credential</th><th>Type</th><th>Used By</th><th>n8n Credential Name</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Google Cloud Storage</td>
+              <td><span class="tag tag-blue">OAuth 2.0</span></td>
+              <td>List objects, download files</td>
+              <td><code>Google Cloud Storage account</code></td>
+            </tr>
+            <tr>
+              <td>Google BigQuery</td>
+              <td><span class="tag tag-ok">Service Account</span></td>
+              <td>All 4 BigQuery nodes</td>
+              <td><code>Google BigQuery account</code></td>
+            </tr>
+            <tr>
+              <td>Flock Webhook</td>
+              <td><span class="tag tag-purple">Webhook URL</span></td>
+              <td>Start notification + final report</td>
+              <td>Hardcoded in HTTP Request nodes</td>
+            </tr>
+            <tr>
+              <td>Webhook Token</td>
+              <td><span class="tag tag-warn">Bearer Token</span></td>
+              <td>Authenticate incoming webhook trigger</td>
+              <td>Hardcoded in Switch node condition</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Maintenance -->
+  <div class="kt-card">
+    <div class="kt-card-header">
+      <div class="kt-num" style="background: rgba(56,189,248,0.15); color: #38bdf8;">6</div>
+      <div>
+        <h3>Common Maintenance Tasks</h3>
+        <p>Day-to-day operational knowledge</p>
+      </div>
+    </div>
+    <div class="kt-card-body">
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          Add a new validation rule
+          <span class="chevron">▼</span>
+        </div>
+        <div class="accordion-body">
+          <p class="text2 fs12">Add a new UPDATE statement to the <strong>Validations Queries</strong> BigQuery node. Follow the pattern:</p>
+          <div class="code-block">
+<span class="kw">UPDATE</span> <span class="str">`rebate_process_temp.rebate_cleaned_data`</span>
+<span class="kw">SET</span>
+  validation_error = <span class="str">'YOUR_ERROR_CODE'</span>,
+  status = <span class="str">'ERROR'</span>,
+  updated_at = <span class="fn">CURRENT_TIMESTAMP</span>()
+<span class="kw">WHERE</span> [your condition]
+<span class="kw">AND</span> validation_error <span class="kw">IS NULL</span>;  <span class="cm">-- always add this guard</span>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          Change the Flock notification channel
+          <span class="chevron">▼</span>
+        </div>
+        <div class="accordion-body">
+          <p class="text2 fs12">Update the URL in both <strong>HTTP Request</strong> nodes (the start notification and the final report). The Flock webhook URL is the only thing that needs changing.</p>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          Add a new domain type
+          <span class="chevron">▼</span>
+        </div>
+        <div class="accordion-body">
+          <p class="text2 fs12">Changes needed in 3 places:</p>
+          <ol style="color: var(--text2); font-size: 12px; line-height: 2; padding-left: 20px;">
+            <li><strong>clean data</strong> JS node — add to <code>cleanDomainType()</code> function</li>
+            <li><strong>Validations Queries</strong> BQ node — add to the INCORRECT_DOMAIN_TYPE allowlist</li>
+            <li><strong>find domain in system</strong> BQ node — add an UPDATE block for the new type's source table</li>
+          </ol>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          The workflow processed old files again
+          <span class="chevron">▼</span>
+        </div>
+        <div class="accordion-body">
+          <p class="text2 fs12">This happens because the GCS bucket is not cleared between runs. The workflow picks up ALL .xlsx/.csv files currently in the <code>manual_rebate_process</code> bucket. Solution: delete processed files from the bucket, or add a post-processing step to move files to an archive folder.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end kt -->
+
+
+<!-- ═══════════════════════════════════════════
+     TAB: ERROR CODES
+═══════════════════════════════════════════ -->
+<div id="tab-errors" class="tab-content">
+
+  <div class="section-title">⚠️ Error Code Reference</div>
+
+  <div class="callout callout-info" style="margin-bottom: 20px;">
+    <strong>How to Use This Reference</strong>
+    When you receive a Flock report with error codes, look up each code here to understand the root cause and how to fix the input data.
+  </div>
+
+  <div id="error-list">
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">INCORRECT_DOMAIN_TYPE</span> Invalid domain type value</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">SQL Validation #1</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The <code>domain_type</code> column has a value that isn't one of the 4 supported types after normalization</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Correct the domain_type to: <code>new</code>, <code>renew</code>, <code>premium new</code>, or <code>premium renew</code></div>
+          <div class="nd-key">Also Accepts</div><div class="nd-val">renewal, registration, create, premium_new, premium_renew</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">INVALID_DOMAIN_NAME</span> Not a valid registrable domain</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">SQL Validation #2</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">BigQuery's <code>NET.REG_DOMAIN()</code> function returned NULL — the domain is malformed or not a valid ICANN registrable domain</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Check for typos, extra spaces, or junk characters. The domain must have a valid TLD (e.g. example.com, not "example")</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">DUPLICATE_ENTRY</span> Domain appears more than once</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">SQL Validation #3</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The same domain name was submitted more than once across all files in the bucket. Only the first entry (by created_at) is kept.</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Remove duplicate rows from your input file before uploading</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">MISSING_DOMAIN / MISSING_DOMAIN_TYPE / MISSING_DATE / MISSING_CLIENT</span> Required field empty</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">SQL Validations #4–7</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">A mandatory column is NULL or an empty string in the input row</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Ensure all four required columns are filled in: <code>domain</code>, <code>domain_type</code>, <code>client</code>, <code>date</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">MISSING_MBG_FOR_*_DOMAIN</span> MBG field is NULL in registry</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">SQL Validations #8–11</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The domain was found in the registry table but the <code>mbg</code> (Money-Back Guarantee) field is NULL — rebate cannot be calculated without it</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Update the MBG field in the relevant registry table (<code>radix_data.newreg</code>, <code>renews</code>, etc.) for this domain before re-running</div>
+          <div class="nd-key">Variants</div><div class="nd-val">MISSING_MBG_FOR_NEW_DOMAIN · MISSING_MBG_FOR_RENEW_DOMAIN · MISSING_MBG_FOR_PREMIUM_NEW_DOMAIN · MISSING_MBG_FOR_PREMIUM_RENEW_DOMAIN</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">DATE_EXCEEDS_180_DAY_LIMIT</span> Registration/renewal too old</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment Validation #1</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The <code>createrenewdate</code> (from registry) is older than 180 days from today. Rebate window has expired.</div>
+          <div class="nd-key">Fix</div><div class="nd-val">This domain is no longer eligible for a rebate. Remove it from the claim file. If you believe this is an error, verify the actual registration/renewal date in BigQuery.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE</span> Domain not in registry</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment Validation #4</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">After checking all 4 registry tables (newreg, renews, premium_newreg, premium_renews), no matching record was found. The domain either doesn't exist or was submitted with the wrong domain_type.</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Verify: (1) Is the domain registered in our system? (2) Is the domain_type correct? (3) Could it be in a different registry table?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">DOMAIN_MARKED_AS_DELETED</span> Domain has been deleted</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment Validation #2</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The domain was not found in active registry tables, but exists in <code>cnic_dump.deleted</code> — the domain was deleted/expired</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Deleted domains are not eligible for rebates. Remove from claim file.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">DOMAIN_FOUND_IN_RESTORE</span> Domain is in restore/redemption state</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment Validation #3</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">Domain was not found in active tables but exists in <code>cnic_dump.restore</code> — domain is in redemption/restore grace period</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Domain is in a special state. Wait for restoration to complete or verify eligibility with the registry team.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- end errors -->
+
+</div><!-- container -->
+
+<script>
+// ── Tab switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Accordion ──
+function toggleAccordion(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+// ── Node Details ──
+const nodeData = {
+  webhook: {
+    title: '🔗 Webhook Trigger',
+    type: 'Trigger',
+    details: {
+      'Node Type': 'n8n-nodes-base.webhook',
+      'Method': 'POST',
+      'Path': '/process-rebates',
+      'Auth': 'Token check via Switch node (query.token)',
+      'Webhook ID': '02441f1e-6971-4591-b90c-368dce107230',
+      'Description': 'Entry point for Flock chat command. Passes request to Switch for token/command validation before proceeding.'
+    }
+  },
+  switch: {
+    title: '⚡ Switch (Auth + Command Check)',
+    type: 'Router',
+    details: {
+      'Node Type': 'n8n-nodes-base.switch',
+      'Rule 1': 'query.token == "36ab6046-3ff4-4d91-b893-ffffe253e910"',
+      'Rule 2': 'body.text == "process rebates"',
+      'Combinator': 'AND (both conditions must match)',
+      'On Match': 'Route to HTTP Request (start notification)',
+      'On No Match': 'Dead end — workflow stops'
+    }
+  },
+  manual: {
+    title: '▶ Manual Trigger',
+    type: 'Trigger',
+    details: {
+      'Node Type': 'n8n-nodes-base.manualTrigger',
+      'Description': 'Allows developers to test/run the workflow directly from the n8n editor without needing a Flock command.',
+      'Connects To': 'HTTP Request (start notification) — same path as Webhook after auth'
+    }
+  },
+  'flock-start': {
+    title: '🔔 Flock Start Notification',
+    type: 'HTTP Request',
+    details: {
+      'Node Type': 'n8n-nodes-base.httpRequest',
+      'Method': 'POST',
+      'Destination': 'Flock webhook (api.flock.com)',
+      'Message': '"🚀 Rebate processing started. Scanning input files..."',
+      'Purpose': 'Lets the team know processing has begun so they can expect a result'
+    }
+  },
+  'list-objects': {
+    title: '☁ List GCS Objects',
+    type: 'Google Cloud Storage',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleCloudStorage',
+      'Operation': 'List objects',
+      'Bucket': 'manual_rebate_process',
+      'Return All': 'true',
+      'Credential': 'Google Cloud Storage account (OAuth2)',
+      'Output': 'Array of object metadata including name, selfLink'
+    }
+  },
+  'if-filter': {
+    title: '🔍 File Type Filter',
+    type: 'Conditional',
+    details: {
+      'Node Type': 'n8n-nodes-base.if',
+      'Condition': 'selfLink endsWith "xlsx" OR selfLink endsWith "csv"',
+      'On True': 'Proceed to download file',
+      'On False': 'Skip (non-spreadsheet files ignored)',
+      'Purpose': 'Only process spreadsheet files, skip any other objects in bucket'
+    }
+  },
+  'get-object': {
+    title: '⬇ Download File',
+    type: 'Google Cloud Storage',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleCloudStorage',
+      'Operation': 'Get object (media)',
+      'Bucket': 'manual_rebate_process',
+      'Object Name': '={{ $json.name }} (from previous node)',
+      'Alt': 'media (download binary content)',
+      'Credential': 'Google Cloud Storage account (OAuth2)'
+    }
+  },
+  extract: {
+    title: '📄 Extract from File',
+    type: 'Transform',
+    details: {
+      'Node Type': 'n8n-nodes-base.extractFromFile',
+      'Operation': 'xlsx',
+      'Read As String': 'true',
+      'Purpose': 'Parses the binary XLSX into row-by-row JSON objects',
+      'Output': 'One item per row with all column values as JSON fields'
+    }
+  },
+  clean: {
+    title: '🧹 Clean Data (JavaScript)',
+    type: 'Code',
+    details: {
+      'Node Type': 'n8n-nodes-base.code',
+      'Mode': 'runOnceForAllItems',
+      'Key Functions': 'parseDateToISO(), cleanDomain(), toASCII(), cleanDomainType(), cleanText()',
+      'Date Handling': 'Excel serial → ISO, DD/MM/YYYY, ISO 8601, fallback to file date or today',
+      'Domain Handling': 'Strip protocol/path/port, Unicode normalize, ASCII-ify, lowercase, validate has dot',
+      'Deduplication': 'Uses Set to keep first occurrence of each domain',
+      'Output Fields': 'date, domain, domain_type, client, promo_tag'
+    }
+  },
+  'edit-fields': {
+    title: '✏️ Edit Fields',
+    type: 'Transform',
+    details: {
+      'Node Type': 'n8n-nodes-base.set',
+      'Sets': 'rows_processed = $items().length',
+      'Include Other Fields': 'true',
+      'Purpose': 'Adds a row count to the data payload for tracking/logging'
+    }
+  },
+  'data-ready': {
+    title: '✅ Data Ready for Insert',
+    type: 'Code',
+    details: {
+      'Node Type': 'n8n-nodes-base.code',
+      'Mode': 'runOnceForEachItem',
+      'Operations': 'Final null/empty checks, date format validation, attaches file_name from GCS',
+      'Filename Source': '$items("Get a list of objects")[0]?.json?.name',
+      'Output Fields': 'client, date, domain, domain_type, promo_tag, file_name'
+    }
+  },
+  'js-signal': {
+    title: '⚡ JavaScript Signal',
+    type: 'Code',
+    details: {
+      'Node Type': 'n8n-nodes-base.code',
+      'Code': 'return [{ json: { run: true } }]',
+      'Purpose': 'Collapses the per-row stream into a single trigger signal to fire the BigQuery bulk insert once, not per row',
+      'Pattern': 'Aggregation gate — all rows are inserted in one SQL call'
+    }
+  },
+  'create-temp': {
+    title: '🗄 Create Temp Table Data',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Operations': 'TRUNCATE TABLE, then INSERT all rows',
+      'Target Table': 'radixbi-249015.rebate_process_temp.rebate_cleaned_data',
+      'Credential': 'Google BigQuery service account',
+      'Template Pattern': 'Uses n8n expressions to generate dynamic VALUES(...) tuples',
+      'Warning': 'TRUNCATES the table on every run — all previous data is lost'
+    }
+  },
+  validations: {
+    title: '🛡 Validation Queries',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Validation Rules': '11 SQL UPDATE statements (Steps S1–S11)',
+      'Auto-Fix': 'Upgrades "new" → "premium new" and "renew" → "premium renew" when applicable',
+      'Pattern': 'Each rule ANDs validation_error IS NULL to avoid overwriting existing errors',
+      'Side Effects': 'Sets status="ERROR" and updated_at on flagged rows'
+    }
+  },
+  'find-domain': {
+    title: '🔎 Find Domain in System',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Operations': '4 UPDATE statements — one per domain_type',
+      'Sources': 'radix_data.newreg, renews, premium_newreg, premium_renews',
+      'Logic': 'ROW_NUMBER() OVER PARTITION BY domain ORDER BY date DESC — picks latest record',
+      'Enriches With': 'domain_id, createrenewdate, period, registrar_shortname, client_shortname'
+    }
+  },
+  'post-val': {
+    title: '🛡 Post Domain Finding Validations',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Rules': 'DATE_EXCEEDS_180_DAY_LIMIT, DOMAIN_MARKED_AS_DELETED, DOMAIN_FOUND_IN_RESTORE, DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE',
+      '180-Day Logic': 'createrenewdate < DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)',
+      'Deleted Check': 'Cross-join with cnic_dump.deleted where domain_id IS NULL',
+      'Not-Found Catch': 'domain_id IS NULL after all lookups → catch-all error'
+    }
+  },
+  'success-msg': {
+    title: '📊 Generate Success Summary',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Query Type': 'SELECT with STRING_AGG for Flock-formatted message',
+      'Output': 'Single row with flock_message column containing total/success/error breakdown',
+      'Groups By': 'validation_error (SUCCESS = NULL)',
+      'Format': 'Plain text with emoji and newlines for Flock rendering'
+    }
+  },
+  'send-flock': {
+    title: '📨 Send Final Report to Flock',
+    type: 'HTTP Request',
+    details: {
+      'Node Type': 'n8n-nodes-base.httpRequest',
+      'Method': 'POST',
+      'Destination': 'Flock webhook (same channel as start notification)',
+      'Message': '={{ $json.flock_message }} (from BigQuery summary)',
+      'Purpose': 'Final step — sends processing results to team'
+    }
+  }
+};
+
+function showNode(id) {
+  const detail = document.getElementById('node-detail');
+  const titleEl = document.getElementById('nd-title');
+  const bodyEl = document.getElementById('nd-body');
+  const data = nodeData[id];
+  if (!data) return;
+
+  // Deactivate all nodes
+  document.querySelectorAll('.flow-box').forEach(b => b.classList.remove('active-node'));
+  document.getElementById('fn-' + id)?.classList.add('active-node');
+
+  titleEl.textContent = data.title;
+  let html = '';
+  for (const [k, v] of Object.entries(data.details)) {
+    html += `<div class="nd-key">${k}</div><div class="nd-val" style="font-size:12px;">${v}</div>`;
+  }
+  bodyEl.innerHTML = html;
+  detail.classList.add('visible');
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+
+</body>
+</html>
