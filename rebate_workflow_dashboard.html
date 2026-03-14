@@ -392,17 +392,17 @@
   <div class="grid-4" style="margin-bottom: 20px;">
     <div class="stat-card">
       <div class="stat-icon">⚙️</div>
-      <div class="stat-num">15</div>
+      <div class="stat-num">16</div>
       <div class="stat-label">Workflow Nodes</div>
     </div>
     <div class="stat-card">
       <div class="stat-icon">🛡️</div>
-      <div class="stat-num">13</div>
+      <div class="stat-num">15</div>
       <div class="stat-label">Validation Rules</div>
     </div>
     <div class="stat-card">
       <div class="stat-icon">🗄️</div>
-      <div class="stat-num">4</div>
+      <div class="stat-num">5</div>
       <div class="stat-label">BigQuery Queries</div>
     </div>
     <div class="stat-card">
@@ -444,23 +444,29 @@
         <div class="tl-item">
           <div class="tl-dot red">5</div>
           <div class="tl-title">Validate</div>
-          <div class="tl-sub">Run 13 SQL validation rules, flag errors, auto-upgrade premium domains</div>
+          <div class="tl-sub">Run 11 SQL validation rules, flag errors, set bundled flag from promo_tag, auto-upgrade premium domains</div>
           <div class="tl-tags"><span class="tag tag-error">SQL</span></div>
         </div>
         <div class="tl-item">
           <div class="tl-dot orange">6</div>
           <div class="tl-title">Domain Enrichment</div>
-          <div class="tl-sub">Lookup domain_id, registration date, registrar from registry tables</div>
+          <div class="tl-sub">Lookup domain_id, registration date, registrar, mbg, amount, registrar_id from registry tables</div>
           <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
         </div>
         <div class="tl-item">
           <div class="tl-dot red">7</div>
           <div class="tl-title">Post-lookup Validation</div>
-          <div class="tl-sub">Check 180-day limit, deleted/restored domains, not-found domains</div>
+          <div class="tl-sub">Check 180-day limit, deleted/restored domains, not-found domains, MBG=1 flag</div>
           <div class="tl-tags"><span class="tag tag-error">SQL</span></div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot green">8</div>
+          <div class="tl-dot purple">8</div>
+          <div class="tl-title">ROI Pricing</div>
+          <div class="tl-sub">Apply effective first-year price from falcon.roi_records — joins on reseller, registrar_id, tld, date window, bundle flag</div>
+          <div class="tl-tags"><span class="tag tag-purple">BigQuery</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot green">9</div>
           <div class="tl-title">Report & Notify</div>
           <div class="tl-sub">Generate summary (success/error breakdown) and post to Flock</div>
           <div class="tl-tags"><span class="tag tag-ok">Flock</span></div>
@@ -624,12 +630,12 @@
         <div class="flow-arrow">→</div>
 
         <div class="flow-node" onclick="showNode('create-temp')">
-          <div class="flow-box fn-bq" id="fn-create-temp">🗄 Load BQ<br><span style="font-size:9px;opacity:0.7">TRUNCATE + INSERT</span></div>
+          <div class="flow-box fn-bq" id="fn-create-temp">🗄 Load BQ<br><span style="font-size:9px;opacity:0.7">INSERT + TLD extract</span></div>
         </div>
         <div class="flow-arrow">→</div>
 
         <div class="flow-node" onclick="showNode('validations')">
-          <div class="flow-box fn-validate" id="fn-validations">🛡 Validate<br><span style="font-size:9px;opacity:0.7">13 SQL rules</span></div>
+          <div class="flow-box fn-validate" id="fn-validations">🛡 Validate<br><span style="font-size:9px;opacity:0.7">11 rules + bundled</span></div>
         </div>
         <div class="flow-arrow">→</div>
 
@@ -639,7 +645,12 @@
         <div class="flow-arrow">→</div>
 
         <div class="flow-node" onclick="showNode('post-val')">
-          <div class="flow-box fn-validate" id="fn-post-val">🛡 Post-Validate<br><span style="font-size:9px;opacity:0.7">180d / deleted</span></div>
+          <div class="flow-box fn-validate" id="fn-post-val">🛡 Post-Validate<br><span style="font-size:9px;opacity:0.7">180d / deleted / MBG</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('roi-pricing')">
+          <div class="flow-box fn-bq" id="fn-roi-pricing">💰 ROI Pricing<br><span style="font-size:9px;opacity:0.7">effective_first</span></div>
         </div>
         <div class="flow-arrow">→</div>
 
@@ -796,12 +807,12 @@
     </div>
   </div>
 
-  <!-- Auto-Fixes -->
+  <!-- Auto-Fixes + Bundled Flag -->
   <div class="card">
-    <div class="card-title"><span class="icon">🔧</span> Auto-Fix Rules (Applied After Validation)</div>
+    <div class="card-title"><span class="icon">🔧</span> Auto-Fix &amp; Auto-Derive Rules (Applied After Validation)</div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Fix</th><th>Condition</th><th>Action</th></tr></thead>
+        <thead><tr><th>Type</th><th>Condition</th><th>Action</th></tr></thead>
         <tbody>
           <tr>
             <td><span class="tag tag-ok">Auto-Upgrade</span></td>
@@ -812,6 +823,11 @@
             <td><span class="tag tag-ok">Auto-Upgrade</span></td>
             <td>domain_type='renew' AND domain found in <code>premium_renews</code></td>
             <td>Sets domain_type = 'premium renew'</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">Auto-Derive</span></td>
+            <td>promo_tag IN ('yes', 'bundle', 'bundled') (case-insensitive)</td>
+            <td>Sets <code>bundled = TRUE</code>, else <code>FALSE</code> — used in ROI pricing join</td>
           </tr>
         </tbody>
       </table>
@@ -847,6 +863,12 @@
             <td><span class="tag tag-blue">E4</span></td>
             <td><code>DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE</code></td>
             <td>domain_id is still NULL after all lookup steps</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">E5</span></td>
+            <td><code>MBG_DOMAIN</code></td>
+            <td><code>COALESCE(mbg, 0) = 1</code> — domain is under Money-Back Guarantee, not eligible for rebate</td>
             <td><span class="tag tag-error">ERROR</span></td>
           </tr>
         </tbody>
@@ -896,11 +918,18 @@
             <tr><td><code>domain_type</code></td><td>STRING</td><td>Input file / auto-upgraded</td></tr>
             <tr><td><code>promo_tag</code></td><td>STRING</td><td>Input file</td></tr>
             <tr><td><code>file_name</code></td><td>STRING</td><td>GCS object name</td></tr>
+            <tr><td><code>tld</code></td><td>STRING</td><td>Extracted from domain after INSERT (handles in.net, co.in)</td></tr>
+            <tr><td><code>bundled</code></td><td>BOOLEAN</td><td>Derived from promo_tag (yes/bundle/bundled → TRUE)</td></tr>
             <tr><td><code>domain_id</code></td><td>STRING</td><td>Registry lookup (newreg/renews)</td></tr>
             <tr><td><code>createrenewdate</code></td><td>DATE</td><td>Registry lookup</td></tr>
             <tr><td><code>period</code></td><td>INT</td><td>Registry lookup</td></tr>
             <tr><td><code>registrar_shortname</code></td><td>STRING</td><td>Registry lookup</td></tr>
             <tr><td><code>client_shortname</code></td><td>STRING</td><td>Registry lookup</td></tr>
+            <tr><td><code>registrar_id</code></td><td>STRING</td><td>Registry lookup (registrar_userid)</td></tr>
+            <tr><td><code>mbg</code></td><td>NUMERIC</td><td>Registry lookup — Money-Back Guarantee flag</td></tr>
+            <tr><td><code>amount</code></td><td>NUMERIC</td><td>Registry lookup — transaction amount</td></tr>
+            <tr><td><code>effective_first</code></td><td>NUMERIC</td><td>ROI pricing — effective first-year price from falcon.roi_records</td></tr>
+            <tr><td><code>bq_promo_tag</code></td><td>STRING</td><td>ROI pricing — matched promo_tag from roi_records</td></tr>
             <tr><td><code>validation_error</code></td><td>STRING</td><td>SQL validation steps</td></tr>
             <tr><td><code>status</code></td><td>STRING</td><td>Set to 'ERROR' when flagged</td></tr>
             <tr><td><code>created_at</code></td><td>TIMESTAMP</td><td>Auto (insert time)</td></tr>
@@ -948,6 +977,11 @@
             <td>Restored domain check (post-enrichment)</td>
             <td>LOWER(domain)</td>
           </tr>
+          <tr>
+            <td><code>roi_records</code></td><td>falcon</td>
+            <td>ROI pricing — effective first-year price lookup</td>
+            <td>reseller + registrar_id + tld + date range + type + bundle + custom_tag</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -969,23 +1003,30 @@ GCS Bucket: manual_rebate_process
 <span class="cm">/* After JavaScript Cleaning */</span>
 Clean rows (deduped, normalized, ASCII domains)
   └── INSERT → rebate_process_temp.rebate_cleaned_data
+  └── UPDATE: tld extracted (handles in.net, co.in edge cases)
 
 <span class="cm">/* After SQL Validation Pass 1 */</span>
 Rows tagged with validation_error OR remain clean
-
-<span class="cm">/* After Auto-Fix */</span>
-'new' → 'premium new'  (if in premium_newreg)
-'renew' → 'premium renew'  (if in premium_renews)
+  └── bundled flag derived from promo_tag ('yes'/'bundle'/'bundled' → TRUE)
+  └── Auto-upgrade: 'new' → 'premium new' / 'renew' → 'premium renew'
 
 <span class="cm">/* After Domain Enrichment */</span>
 Clean rows enriched with:
   domain_id, createrenewdate, period,
-  registrar_shortname, client_shortname
+  registrar_shortname, client_shortname,
+  registrar_id, mbg, amount
 
 <span class="cm">/* After Post-Validation */</span>
-Final status:
-  ✅ validation_error IS NULL → SUCCESS
-  ❌ validation_error IS NOT NULL → ERROR
+Additional error checks:
+  DATE_EXCEEDS_180_DAY_LIMIT, DOMAIN_MARKED_AS_DELETED,
+  DOMAIN_FOUND_IN_RESTORE, DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE,
+  MBG_DOMAIN (mbg = 1)
+
+<span class="cm">/* After ROI Pricing */</span>
+Successful rows enriched with:
+  effective_first  ← from falcon.roi_records
+  bq_promo_tag     ← matched ROI promo tag
+  (joins on reseller + registrar_id + tld + date window + bundle)
 
 <span class="cm">/* Final Report (sent to Flock) */</span>
 Total rows: N
@@ -1374,6 +1415,21 @@ Breakup:
       </div>
     </div>
 
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">MBG_DOMAIN</span> Domain is under Money-Back Guarantee</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment Validation #5</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">The <code>mbg</code> field returned from the registry table equals 1 — the domain is still within its Money-Back Guarantee window and is therefore not eligible for a rebate</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Wait until the MBG period has expired before claiming the rebate for this domain, or verify with the registry team whether an exception applies</div>
+          <div class="nd-key">SQL Check</div><div class="nd-val"><code>COALESCE(mbg, 0) = 1 AND validation_error IS NULL</code></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </div><!-- end errors -->
@@ -1537,10 +1593,11 @@ const nodeData = {
     type: 'BigQuery',
     details: {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
-      'Operations': 'TRUNCATE TABLE, then INSERT all rows',
+      'Operations': 'TRUNCATE TABLE, then INSERT all rows, then extract TLD',
       'Target Table': 'radixbi-249015.rebate_process_temp.rebate_cleaned_data',
       'Credential': 'Google BigQuery service account',
       'Template Pattern': 'Uses n8n expressions to generate dynamic VALUES(...) tuples',
+      'TLD Extraction': 'Special-cased for in.net and co.in; falls back to REGEXP_EXTRACT last label',
       'Warning': 'TRUNCATES the table on every run — all previous data is lost'
     }
   },
@@ -1551,6 +1608,7 @@ const nodeData = {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
       'Validation Rules': '11 SQL UPDATE statements (Steps S1–S11)',
       'Auto-Fix': 'Upgrades "new" → "premium new" and "renew" → "premium renew" when applicable',
+      'Bundled Flag': 'Sets bundled=TRUE where promo_tag IN (yes, bundle, bundled); else FALSE',
       'Pattern': 'Each rule ANDs validation_error IS NULL to avoid overwriting existing errors',
       'Side Effects': 'Sets status="ERROR" and updated_at on flagged rows'
     }
@@ -1563,7 +1621,7 @@ const nodeData = {
       'Operations': '4 UPDATE statements — one per domain_type',
       'Sources': 'radix_data.newreg, renews, premium_newreg, premium_renews',
       'Logic': 'ROW_NUMBER() OVER PARTITION BY domain ORDER BY date DESC — picks latest record',
-      'Enriches With': 'domain_id, createrenewdate, period, registrar_shortname, client_shortname'
+      'Enriches With': 'domain_id, createrenewdate, period, registrar_shortname, client_shortname, registrar_id, mbg, amount'
     }
   },
   'post-val': {
@@ -1571,10 +1629,27 @@ const nodeData = {
     type: 'BigQuery',
     details: {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
-      'Rules': 'DATE_EXCEEDS_180_DAY_LIMIT, DOMAIN_MARKED_AS_DELETED, DOMAIN_FOUND_IN_RESTORE, DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE',
+      'Rules': 'DATE_EXCEEDS_180_DAY_LIMIT, DOMAIN_MARKED_AS_DELETED, DOMAIN_FOUND_IN_RESTORE, DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE, MBG_DOMAIN',
       '180-Day Logic': 'createrenewdate < DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)',
       'Deleted Check': 'Cross-join with cnic_dump.deleted where domain_id IS NULL',
-      'Not-Found Catch': 'domain_id IS NULL after all lookups → catch-all error'
+      'Not-Found Catch': 'domain_id IS NULL after all lookups → catch-all error',
+      'MBG_DOMAIN': 'COALESCE(mbg, 0) = 1 — domain under Money-Back Guarantee, not eligible'
+    }
+  },
+  'roi-pricing': {
+    title: '💰 ROI Pricing (apply rebates)',
+    type: 'BigQuery',
+    details: {
+      'Node Type': 'n8n-nodes-base.googleBigQuery',
+      'Node Name': 'apply rebates',
+      'Operations': '2 UPDATE statements — one for new/premium new, one for renew/premium renew',
+      'Source Table': 'falcon.roi_records',
+      'Join Keys': 'client_shortname=reseller, registrar_id, tld, createrenewdate within start_date–end_date',
+      'Period Filter': 'new: period IN (0, 1) | renew: no period filter',
+      'Bundle Match': 'bundled=TRUE → rr.bundle=TRUE; bundled=FALSE → rr.bundle=FALSE',
+      'Promo Match': 'If promo_tag IS NOT NULL → must match rr.custom_tag (case-insensitive)',
+      'Populates': 'effective_first (NUMERIC), bq_promo_tag (STRING)',
+      'Guard': 'Only updates where validation_error IS NULL AND effective_first IS NULL'
     }
   },
   'success-msg': {
