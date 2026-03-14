@@ -1637,11 +1637,11 @@ const nodeData = {
     }
   },
   'roi-pricing': {
-    title: '💰 ROI Pricing (Execute a SQL query)',
+    title: '💰 ROI Pricing (apply rebates)',
     type: 'BigQuery',
     details: {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
-      'Node Name': 'Execute a SQL query',
+      'Node Name': 'apply rebates',
       'Operations': '2 UPDATE statements — one for new/premium new, one for renew/premium renew',
       'Source Table': 'falcon.roi_records',
       'Join Keys': 'client_shortname=reseller, registrar_id, tld, createrenewdate within start_date–end_date',

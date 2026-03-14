@@ -465,7 +465,7 @@
         -576
       ],
       "id": "254654fa-30a2-4d4d-9254-72f6388d346b",
-      "name": "Execute a SQL query",
+      "name": "apply rebates",
       "credentials": {
         "googleApi": {
           "id": "a5b3Mun5fdbk0YgU",
@@ -662,14 +662,14 @@
       "main": [
         [
           {
-            "node": "Execute a SQL query",
+            "node": "apply rebates",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Execute a SQL query": {
+    "apply rebates": {
       "main": [
         [
           {
@@ -686,7 +686,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "d994c0e5-9deb-4fa4-beef-355de2368b59",
+  "versionId": "bf58e965-ae9d-4bb6-b994-aea5be24e9c4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "661783756ab48a9114a6cfa13d28c832f1219428b6df7b0a38076aa190737950"
