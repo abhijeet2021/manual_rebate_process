@@ -392,7 +392,7 @@
   <div class="grid-4" style="margin-bottom: 20px;">
     <div class="stat-card">
       <div class="stat-icon">⚙️</div>
-      <div class="stat-num">16</div>
+      <div class="stat-num">17</div>
       <div class="stat-label">Workflow Nodes</div>
     </div>
     <div class="stat-card">
@@ -402,7 +402,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon">🗄️</div>
-      <div class="stat-num">5</div>
+      <div class="stat-num">6</div>
       <div class="stat-label">BigQuery Queries</div>
     </div>
     <div class="stat-card">
@@ -460,13 +460,19 @@
           <div class="tl-tags"><span class="tag tag-error">SQL</span></div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot purple">8</div>
-          <div class="tl-title">ROI Pricing</div>
-          <div class="tl-sub">Apply effective first-year price from falcon.roi_records — joins on reseller, registrar_id, tld, date window, bundle flag</div>
-          <div class="tl-tags"><span class="tag tag-purple">BigQuery</span></div>
+          <div class="tl-dot orange">8</div>
+          <div class="tl-title">Apply Rebates — Effective First</div>
+          <div class="tl-sub">Lookup effective first-year price from ROI records (multi-year, period 0/1, custom-tag, CNIC fallback, std-price fallback). Derives effective_price for new/premium new.</div>
+          <div class="tl-tags"><span class="tag tag-blue">BigQuery</span><span class="tag tag-purple">falcon.roi_records</span></div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot green">9</div>
+          <div class="tl-dot orange">9</div>
+          <div class="tl-title">Apply Rebates — Effective Multi</div>
+          <div class="tl-sub">Override effective_multi with explicit multi-year ROI pricing for new/premium new with and without custom-tag filters.</div>
+          <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot green">10</div>
           <div class="tl-title">Report & Notify</div>
           <div class="tl-sub">Generate summary (success/error breakdown) and post to Flock</div>
           <div class="tl-tags"><span class="tag tag-ok">Flock</span></div>
@@ -502,6 +508,9 @@
           <div class="nd-key">Webhook Path</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">POST /process-rebates</code></div>
           <div class="nd-key">Trigger Command</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">"process rebates" + token</code></div>
           <div class="nd-key">Input Formats</div><div class="nd-val"><span class="tag tag-blue">.xlsx</span> <span class="tag tag-blue">.csv</span></div>
+          <div class="nd-key">Rebate Pricing</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">falcon.roi_records</code></div>
+          <div class="nd-key">CNIC Fallback</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">falcon.cnic_records</code></div>
+          <div class="nd-key">Std Price Fallback</div><div class="nd-val"><code style="background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">common_data.tld_std_price</code></div>
         </div>
       </div>
     </div>
@@ -649,8 +658,13 @@
         </div>
         <div class="flow-arrow">→</div>
 
-        <div class="flow-node" onclick="showNode('roi-pricing')">
-          <div class="flow-box fn-bq" id="fn-roi-pricing">💰 ROI Pricing<br><span style="font-size:9px;opacity:0.7">effective_first</span></div>
+        <div class="flow-node" onclick="showNode('eff-first')">
+          <div class="flow-box fn-bq" id="fn-eff-first">🧮 Eff. First<br><span style="font-size:9px;opacity:0.7">BigQuery / falcon.roi_records</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
+        <div class="flow-node" onclick="showNode('eff-multi')">
+          <div class="flow-box fn-bq" id="fn-eff-multi">🧮 Eff. Multi<br><span style="font-size:9px;opacity:0.7">BigQuery / explicit multi-year</span></div>
         </div>
         <div class="flow-arrow">→</div>
 
@@ -802,6 +816,12 @@
             <td>domain_type='premium renew' and domain in premium_renews with mbg=NULL</td>
             <td><span class="tag tag-error">ERROR</span></td>
           </tr>
+          <tr>
+            <td><span class="tag tag-blue">S12</span></td>
+            <td><code>MBG_DOMAIN</code></td>
+            <td>domain mbg = 1 after enrichment (Money-Back Guarantee domain — not eligible for rebate)</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -832,6 +852,11 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <div class="callout callout-info mt12">
+    <strong>Bundled Flag (Auto-Set)</strong>
+    After validation, rows with <code>promo_tag</code> = 'yes', 'bundle', or 'bundled' have <code>bundled = TRUE</code> set automatically. This flag is used in ROI pricing lookups to match bundle-specific pricing tiers.
   </div>
 
   <!-- Post-Enrichment Validations -->
@@ -928,7 +953,10 @@
             <tr><td><code>registrar_id</code></td><td>STRING</td><td>Registry lookup (registrar_userid)</td></tr>
             <tr><td><code>mbg</code></td><td>NUMERIC</td><td>Registry lookup — Money-Back Guarantee flag</td></tr>
             <tr><td><code>amount</code></td><td>NUMERIC</td><td>Registry lookup — transaction amount</td></tr>
+            <tr><td><code>rebate_given</code></td><td>BOOLEAN</td><td>Whether rebate was previously given</td></tr>
             <tr><td><code>effective_first</code></td><td>NUMERIC</td><td>ROI pricing — effective first-year price from falcon.roi_records</td></tr>
+            <tr><td><code>effective_multi</code></td><td>FLOAT</td><td>Multi-year effective price from ROI/CNIC/std</td></tr>
+            <tr><td><code>effective_price</code></td><td>FLOAT</td><td>Final price = first + multi×(period−1)</td></tr>
             <tr><td><code>bq_promo_tag</code></td><td>STRING</td><td>ROI pricing — matched promo_tag from roi_records</td></tr>
             <tr><td><code>validation_error</code></td><td>STRING</td><td>SQL validation steps</td></tr>
             <tr><td><code>status</code></td><td>STRING</td><td>Set to 'ERROR' when flagged</td></tr>
@@ -979,8 +1007,18 @@
           </tr>
           <tr>
             <td><code>roi_records</code></td><td>falcon</td>
-            <td>ROI pricing — effective first-year price lookup</td>
-            <td>reseller + registrar_id + tld + date range + type + bundle + custom_tag</td>
+            <td>Effective pricing lookup for rebate calculation</td>
+            <td>client_shortname, registrar_id, tld, date range, type, period, bundle</td>
+          </tr>
+          <tr>
+            <td><code>cnic_records</code></td><td>falcon</td>
+            <td>CNIC fallback pricing for effective_multi</td>
+            <td>registrar_shortname, tld, date+time range, type=renewal</td>
+          </tr>
+          <tr>
+            <td><code>tld_std_price</code></td><td>common_data</td>
+            <td>Standard price fallback for effective_multi</td>
+            <td>tld, date range</td>
           </tr>
         </tbody>
       </table>
@@ -1636,20 +1674,34 @@ const nodeData = {
       'MBG_DOMAIN': 'COALESCE(mbg, 0) = 1 — domain under Money-Back Guarantee, not eligible'
     }
   },
-  'roi-pricing': {
-    title: '💰 ROI Pricing (apply rebates)',
+  'eff-first': {
+    title: '🧮 Apply Rebates (Effective First)',
     type: 'BigQuery',
     details: {
-      'Node Type': 'n8n-nodes-base.googleBigQuery',
-      'Node Name': 'apply rebates',
-      'Operations': '2 UPDATE statements — one for new/premium new, one for renew/premium renew',
+      'Node Name': 'apply rebates (effective first)',
+      'Source Table': 'falcon.roi_records, falcon.cnic_records, common_data.tld_std_price',
+      'Step 1': 'Multi-year comma-separated periods — NEW & PREMIUM NEW',
+      'Step 2': 'Period 0/1 with custom_tag match — NEW & PREMIUM NEW',
+      'Step 3': 'Period 0/1 fallback without custom_tag — NEW & PREMIUM NEW',
+      'Step 4': 'RENEW & PREMIUM RENEW pricing from roi_records',
+      'CNIC Fallback': 'effective_multi from falcon.cnic_records (renewal type)',
+      'Std Price Fallback': 'effective_multi from common_data.tld_std_price',
+      'Derives': 'effective_price = effective_first + effective_multi × (period − 1)',
+      'Join Keys': 'client_shortname, registrar_id, tld, date range, bundle flag'
+    }
+  },
+  'eff-multi': {
+    title: '🧮 Apply Rebates (Effective Multi)',
+    type: 'BigQuery',
+    details: {
+      'Node Name': 'apply rebates (effective multi)',
       'Source Table': 'falcon.roi_records',
-      'Join Keys': 'client_shortname=reseller, registrar_id, tld, createrenewdate within start_date–end_date',
-      'Period Filter': 'new: period IN (0, 1) | renew: no period filter',
-      'Bundle Match': 'bundled=TRUE → rr.bundle=TRUE; bundled=FALSE → rr.bundle=FALSE',
-      'Promo Match': 'If promo_tag IS NOT NULL → must match rr.custom_tag (case-insensitive)',
-      'Populates': 'effective_first (NUMERIC), bq_promo_tag (STRING)',
-      'Guard': 'Only updates where validation_error IS NULL AND effective_first IS NULL'
+      'Step 1': 'Explicit multi-year NEW pricing with custom_tag match (period > 1, not comma-separated)',
+      'Step 2': 'Fallback multi-year NEW pricing without custom_tag filter',
+      'Step 3': 'Explicit multi-year PREMIUM NEW pricing with custom_tag match',
+      'Step 4': 'Fallback multi-year PREMIUM NEW pricing without custom_tag filter',
+      'Sets': 'effective_price, effective_multi, bq_promo_tag',
+      'Guard': 'Only applies where effective_price IS NULL'
     }
   },
   'success-msg': {

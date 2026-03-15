@@ -124,3 +124,34 @@ Dashboard is published via GitHub Pages:
 - All `.xlsx`/`.csv` files in the GCS bucket are processed each run — remove old files to avoid reprocessing
 - To add a new domain type: update (1) `cleanDomainType()` in JS, (2) INCORRECT_DOMAIN_TYPE allowlist in SQL, (3) new UPDATE block in `find domain in system` BQ node
 - Webhook token and Flock URL are hardcoded in n8n nodes — rotate via n8n editor if needed
+
+---
+
+## Update — 2026-03-15: Workflow JSON v2
+
+### New Pipeline Nodes
+| Node | Purpose |
+|------|---------|
+| `apply rebates (effective first)` | Lookups effective first-year price from `falcon.roi_records`. Handles multi-year, period 0/1 with/without custom_tag, CNIC fallback, std-price fallback. Derives `effective_price`. |
+| `apply rebates (effective multi)` | Overrides `effective_multi` with explicit multi-year ROI pricing for new/premium new. |
+
+### New Fields in Temp Table
+`tld`, `bundled`, `registrar_id`, `mbg`, `amount`, `rebate_given`, `effective_first`, `effective_multi`, `effective_price`, `bq_promo_tag`
+
+### New Validation Rule
+| Error Code | Trigger |
+|------------|---------|
+| `MBG_DOMAIN` | mbg = 1 on matched registry record |
+
+### New Source Tables
+| Table | Dataset | Purpose |
+|-------|---------|---------|
+| `roi_records` | falcon | Effective pricing for rebate calculation |
+| `cnic_records` | falcon | CNIC fallback for effective_multi |
+| `tld_std_price` | common_data | Standard price fallback for effective_multi |
+
+### Bundled Flag
+`promo_tag` values of 'yes', 'bundle', 'bundled' → `bundled = TRUE` (used in ROI pricing tier matching)
+
+### Pipeline Flow (Updated)
+`post domain finding validations` → `apply rebates (effective first)` → `apply rebates (effective multi)` → `success msg` → `send success msg to flock`
