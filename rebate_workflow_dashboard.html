@@ -1046,49 +1046,163 @@
   <!-- Data Flow Diagram -->
   <div class="card">
     <div class="card-title"><span class="icon">🔄</span> Data Flow</div>
-    <div class="code-block">
-<span class="cm">/* Input */</span>
-GCS Bucket: manual_rebate_process
-  └── [file.xlsx / file.csv]
-        ├── domain
-        ├── domain_type
-        ├── client
-        ├── date
-        └── promo_tag
 
-<span class="cm">/* After JavaScript Cleaning */</span>
-Clean rows (deduped, normalized, ASCII domains)
-  └── INSERT → rebate_process_temp.rebate_cleaned_data
-  └── UPDATE: tld extracted (handles in.net, co.in edge cases)
+    <div style="display:flex; flex-direction:column; gap:0;">
 
-<span class="cm">/* After SQL Validation Pass 1 */</span>
-Rows tagged with validation_error OR remain clean
-  └── bundled flag derived from promo_tag (any non-empty value → TRUE; IF(TRIM(COALESCE(promo_tag,'')) != '', TRUE, FALSE))
-  └── Auto-upgrade: 'new' → 'premium new' / 'renew' → 'premium renew'
+      <!-- Stage 1 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(99,102,241,0.2); border:2px solid #6366f1; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">📥</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#6366f1,#3b82f6); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#a5b4fc; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">① Input — GCS Bucket</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:2px 9px; font-size:11px; font-family:monospace;">file.xlsx</span>
+            <span style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:5px; padding:2px 9px; font-size:11px; font-family:monospace;">file.csv</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+            <span style="font-size:11px; color:#94a3b8;">Columns:</span>
+            <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">domain</span>
+            <span style="font-size:11px; color:#475569;">·</span>
+            <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">domain_type</span>
+            <span style="font-size:11px; color:#475569;">·</span>
+            <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">client</span>
+            <span style="font-size:11px; color:#475569;">·</span>
+            <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">date</span>
+            <span style="font-size:11px; color:#475569;">·</span>
+            <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">promo_tag</span>
+          </div>
+        </div>
+      </div>
 
-<span class="cm">/* After Domain Enrichment */</span>
-Clean rows enriched with:
-  domain_id, createrenewdate, period,
-  registrar_shortname, client_shortname,
-  registrar_id, mbg, amount
+      <!-- Stage 2 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(59,130,246,0.2); border:2px solid #3b82f6; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">🧹</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#3b82f6,#f59e0b); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#93c5fd; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">② JavaScript Cleaning</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:12px; color:#cbd5e1;">✦ Deduplicate rows, normalize domains, force ASCII</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ INSERT → <code style="background:rgba(59,130,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">rebate_process_temp.rebate_cleaned_data</code></div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ UPDATE: extract <code style="background:rgba(59,130,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">tld</code> (handles <code style="background:rgba(59,130,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">in.net</code>, <code style="background:rgba(59,130,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">co.in</code> edge cases)</div>
+          </div>
+        </div>
+      </div>
 
-<span class="cm">/* After Post-Validation */</span>
-Additional error checks:
-  DATE_EXCEEDS_180_DAY_LIMIT, DOMAIN_MARKED_AS_DELETED,
-  DOMAIN_FOUND_IN_RESTORE, DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE,
-  MBG_DOMAIN (mbg = 1)
+      <!-- Stage 3 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(245,158,11,0.2); border:2px solid #f59e0b; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">🛡️</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#f59e0b,#10b981); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#fcd34d; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">③ SQL Validation Pass 1</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:12px; color:#cbd5e1;">✦ Rows tagged with <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">validation_error</code> or remain clean</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ Bundled flag: any non-empty <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">promo_tag</code> → <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">bundled = TRUE</code></div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ Auto-upgrade: <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">new</code> → <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">premium new</code> &nbsp;/&nbsp; <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">renew</code> → <code style="background:rgba(245,158,11,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">premium renew</code></div>
+          </div>
+        </div>
+      </div>
 
-<span class="cm">/* After ROI Pricing */</span>
-Successful rows enriched with:
-  effective_first  ← from falcon.roi_records
-  bq_promo_tag     ← matched ROI promo tag
-  (joins on reseller + registrar_id + tld + date window + bundle)
+      <!-- Stage 4 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(16,185,129,0.2); border:2px solid #10b981; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">🔍</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#10b981,#ef4444); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#6ee7b7; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">④ Domain Enrichment</div>
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">Clean rows enriched from registry tables:</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">domain_id</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">createrenewdate</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">period</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">registrar_shortname</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">client_shortname</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">registrar_id</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">mbg</span>
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#a7f3d0;">amount</span>
+          </div>
+        </div>
+      </div>
 
-<span class="cm">/* Final Report (sent to Flock) */</span>
-Total rows: N
-Successful rows: N
-Failed rows: N
-Breakup: [error_code: count]
+      <!-- Stage 5 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(239,68,68,0.2); border:2px solid #ef4444; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">⚠️</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#ef4444,#8b5cf6); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#fca5a5; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">⑤ Post-Enrichment Validation</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#fca5a5;">DATE_EXCEEDS_180_DAY_LIMIT</span>
+            <span style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#fca5a5;">DOMAIN_MARKED_AS_DELETED</span>
+            <span style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#fca5a5;">DOMAIN_FOUND_IN_RESTORE</span>
+            <span style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#fca5a5;">DOMAIN_NOT_FOUND_FOR_DOMAIN_TYPE</span>
+            <span style="background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); border-radius:5px; padding:2px 8px; font-size:11px; font-family:monospace; color:#fca5a5;">MBG_DOMAIN</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage 6 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(139,92,246,0.2); border:2px solid #8b5cf6; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">💰</div>
+          <div style="width:2px; flex:1; background:linear-gradient(to bottom,#8b5cf6,#06b6d4); margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#c4b5fd; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">⑥ ROI Pricing &amp; Rebate Calculation</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:12px; color:#cbd5e1;">✦ <code style="background:rgba(139,92,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">effective_first</code> ← <code style="background:rgba(139,92,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">falcon.roi_records</code> (reseller + registrar_id + tld + date window + bundle)</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ <code style="background:rgba(139,92,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">effective_multi</code> ← multi-year ROI pricing (new / premium new)</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ <code style="background:rgba(139,92,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">effective_price</code> = effective_first × period &nbsp;(renew / premium renew)</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ <code style="background:rgba(139,92,246,0.15); padding:1px 6px; border-radius:4px; font-size:11px;">rebate</code> = amount − rebate_given − effective_price &nbsp;(or fallback without rebate_given)</div>
+            <div style="font-size:12px; color:#cbd5e1;">✦ Flags <code style="background:rgba(239,68,68,0.15); padding:1px 6px; border-radius:4px; font-size:11px; color:#fca5a5;">UNREALIZED_DOMAIN</code> where rebate and effective_first are both NULL</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage 7 -->
+      <div style="display:flex; align-items:stretch; gap:12px;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:36px; flex-shrink:0;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(6,182,212,0.2); border:2px solid #06b6d4; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">📊</div>
+          <div style="width:2px; flex:1; background:transparent; margin-top:4px;"></div>
+        </div>
+        <div style="flex:1; background:rgba(6,182,212,0.07); border:1px solid rgba(6,182,212,0.25); border-radius:10px; padding:14px 16px; margin-bottom:0;">
+          <div style="font-weight:700; color:#67e8f9; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px;">⑦ Final Report → Flock</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">validation_failed</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+            <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">priced_rows</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+            <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">rebate_calculated</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+            <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">pricing_unresolved</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+            <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em;">rebate_missing</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+            <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:6px 12px; text-align:center;">
+              <div style="font-size:10px; color:#6ee7b7; text-transform:uppercase; letter-spacing:.05em;">success_rows</div>
+              <div style="font-size:12px; color:#e2e8f0; font-family:monospace; margin-top:2px;">N rows</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
