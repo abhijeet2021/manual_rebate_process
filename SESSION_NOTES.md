@@ -155,3 +155,37 @@ Dashboard is published via GitHub Pages:
 
 ### Pipeline Flow (Updated)
 `post domain finding validations` → `apply rebates (effective first)` → `apply rebates (effective multi)` → `success msg` → `send success msg to flock`
+
+---
+
+## Update — 2026-03-15: Workflow JSON v3
+
+### New Pipeline Node
+| Node | Purpose |
+|------|---------|
+| `final rebate calc` | Derives `effective_price` for renew/premium renew (= effective_first × period), then calculates final `rebate` amount. Flags `UNREALIZED_DOMAIN` where rebate and effective_first are both NULL. |
+
+### New Field in Temp Table
+| Field | Type | Description |
+|-------|------|-------------|
+| `rebate` | FLOAT | Final rebate amount in USD. NULL until `final rebate calc` runs. |
+
+### New Validation / Error Code
+| Error Code | Trigger |
+|------------|---------|
+| `UNREALIZED_DOMAIN` | `rebate IS NULL AND effective_first IS NULL` after rebate calc — no pricing could be resolved |
+
+### Bundled Flag Logic Change
+- **v2:** Only `'yes'`, `'bundle'`, `'bundled'` → `bundled = TRUE`
+- **v3:** ANY non-empty `promo_tag` value → `bundled = TRUE`
+  - Logic: `IF(TRIM(COALESCE(promo_tag,'')) != '', TRUE, FALSE)`
+
+### Success Message — New Breakdown Fields
+`success msg` BQ query now reports: `validation_failed`, `priced_rows`, `rebate_calculated`, `pricing_unresolved`, `rebate_missing`, `success_rows`
+
+### Pipeline Flow (Updated)
+`apply rebates (effective multi)` → `final rebate calc` → `success msg` → `send success msg to flock`
+
+### Dashboard Stats
+- Total nodes: **18** (was 17)
+- BigQuery queries: **7** (was 6)

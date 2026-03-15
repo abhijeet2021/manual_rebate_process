@@ -392,7 +392,7 @@
   <div class="grid-4" style="margin-bottom: 20px;">
     <div class="stat-card">
       <div class="stat-icon">⚙️</div>
-      <div class="stat-num">17</div>
+      <div class="stat-num">18</div>
       <div class="stat-label">Workflow Nodes</div>
     </div>
     <div class="stat-card">
@@ -402,7 +402,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon">🗄️</div>
-      <div class="stat-num">6</div>
+      <div class="stat-num">7</div>
       <div class="stat-label">BigQuery Queries</div>
     </div>
     <div class="stat-card">
@@ -472,7 +472,13 @@
           <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
         </div>
         <div class="tl-item">
-          <div class="tl-dot green">10</div>
+          <div class="tl-dot orange">10</div>
+          <div class="tl-title">Rebate Calculation</div>
+          <div class="tl-sub"><code>final rebate calc</code> node: computes <code>effective_price</code> (= effective_first × period for renew/premium renew), derives final <code>rebate</code> amount (amount − rebate_given − effective_price, or amount − effective_price), flags <code>UNREALIZED_DOMAIN</code> where rebate is NULL and effective_first is NULL.</div>
+          <div class="tl-tags"><span class="tag tag-blue">BigQuery</span></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot green">11</div>
           <div class="tl-title">Report & Notify</div>
           <div class="tl-sub">Generate summary (success/error breakdown) and post to Flock</div>
           <div class="tl-tags"><span class="tag tag-ok">Flock</span></div>
@@ -668,6 +674,11 @@
         </div>
         <div class="flow-arrow">→</div>
 
+        <div class="flow-node" onclick="showNode('final-calc')">
+          <div class="flow-box fn-bq" id="fn-final-calc">🧮 final rebate<br>calc<br><span style="font-size:9px;opacity:0.7">BigQuery / rebate amount</span></div>
+        </div>
+        <div class="flow-arrow">→</div>
+
         <div class="flow-node" onclick="showNode('success-msg')">
           <div class="flow-box fn-bq" id="fn-success-msg">📊 Summary<br><span style="font-size:9px;opacity:0.7">BQ report query</span></div>
         </div>
@@ -846,7 +857,7 @@
           </tr>
           <tr>
             <td><span class="tag tag-blue">Auto-Derive</span></td>
-            <td>promo_tag IN ('yes', 'bundle', 'bundled') (case-insensitive)</td>
+            <td>ANY non-empty <code>promo_tag</code> value (i.e. <code>TRIM(COALESCE(promo_tag,'')) != ''</code>)</td>
             <td>Sets <code>bundled = TRUE</code>, else <code>FALSE</code> — used in ROI pricing join</td>
           </tr>
         </tbody>
@@ -856,7 +867,7 @@
 
   <div class="callout callout-info mt12">
     <strong>Bundled Flag (Auto-Set)</strong>
-    After validation, rows with <code>promo_tag</code> = 'yes', 'bundle', or 'bundled' have <code>bundled = TRUE</code> set automatically. This flag is used in ROI pricing lookups to match bundle-specific pricing tiers.
+    After validation, any row with a non-empty <code>promo_tag</code> value has <code>bundled = TRUE</code> set automatically (logic: <code>IF(TRIM(COALESCE(promo_tag,'')) != '', TRUE, FALSE)</code>). This flag is used in ROI pricing lookups to match bundle-specific pricing tiers.
   </div>
 
   <!-- Post-Enrichment Validations -->
@@ -894,6 +905,12 @@
             <td><span class="tag tag-blue">E5</span></td>
             <td><code>MBG_DOMAIN</code></td>
             <td><code>COALESCE(mbg, 0) = 1</code> — domain is under Money-Back Guarantee, not eligible for rebate</td>
+            <td><span class="tag tag-error">ERROR</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">E6</span></td>
+            <td><code>UNREALIZED_DOMAIN</code></td>
+            <td>Domain has no effective_first price and rebate could not be calculated</td>
             <td><span class="tag tag-error">ERROR</span></td>
           </tr>
         </tbody>
@@ -944,7 +961,7 @@
             <tr><td><code>promo_tag</code></td><td>STRING</td><td>Input file</td></tr>
             <tr><td><code>file_name</code></td><td>STRING</td><td>GCS object name</td></tr>
             <tr><td><code>tld</code></td><td>STRING</td><td>Extracted from domain after INSERT (handles in.net, co.in)</td></tr>
-            <tr><td><code>bundled</code></td><td>BOOLEAN</td><td>Derived from promo_tag (yes/bundle/bundled → TRUE)</td></tr>
+            <tr><td><code>bundled</code></td><td>BOOLEAN</td><td>Derived from promo_tag (any non-empty value → TRUE; <code>IF(TRIM(COALESCE(promo_tag,'')) != '', TRUE, FALSE)</code>)</td></tr>
             <tr><td><code>domain_id</code></td><td>STRING</td><td>Registry lookup (newreg/renews)</td></tr>
             <tr><td><code>createrenewdate</code></td><td>DATE</td><td>Registry lookup</td></tr>
             <tr><td><code>period</code></td><td>INT</td><td>Registry lookup</td></tr>
@@ -957,6 +974,7 @@
             <tr><td><code>effective_first</code></td><td>NUMERIC</td><td>ROI pricing — effective first-year price from falcon.roi_records</td></tr>
             <tr><td><code>effective_multi</code></td><td>FLOAT</td><td>Multi-year effective price from ROI/CNIC/std</td></tr>
             <tr><td><code>effective_price</code></td><td>FLOAT</td><td>Final price = first + multi×(period−1)</td></tr>
+            <tr><td><code>rebate</code></td><td>FLOAT</td><td>Final rebate amount in USD. NULL until <code>final rebate calc</code> runs.</td></tr>
             <tr><td><code>bq_promo_tag</code></td><td>STRING</td><td>ROI pricing — matched promo_tag from roi_records</td></tr>
             <tr><td><code>validation_error</code></td><td>STRING</td><td>SQL validation steps</td></tr>
             <tr><td><code>status</code></td><td>STRING</td><td>Set to 'ERROR' when flagged</td></tr>
@@ -1045,7 +1063,7 @@ Clean rows (deduped, normalized, ASCII domains)
 
 <span class="cm">/* After SQL Validation Pass 1 */</span>
 Rows tagged with validation_error OR remain clean
-  └── bundled flag derived from promo_tag ('yes'/'bundle'/'bundled' → TRUE)
+  └── bundled flag derived from promo_tag (any non-empty value → TRUE; IF(TRIM(COALESCE(promo_tag,'')) != '', TRUE, FALSE))
   └── Auto-upgrade: 'new' → 'premium new' / 'renew' → 'premium renew'
 
 <span class="cm">/* After Domain Enrichment */</span>
@@ -1468,6 +1486,20 @@ Breakup:
       </div>
     </div>
 
+    <div class="accordion-item">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span><span class="tag tag-error" style="margin-right: 10px;">UNREALIZED_DOMAIN</span> No effective_first price — rebate cannot be calculated</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="nd-grid">
+          <div class="nd-key">Phase</div><div class="nd-val">Post-Enrichment / Rebate Calculation</div>
+          <div class="nd-key">Root Cause</div><div class="nd-val">Domain matched in registry but no effective first-year pricing found in <code>falcon.roi_records</code> (and no CNIC or std-price fallback resolved it), so <code>effective_first</code> is NULL and rebate cannot be derived.</div>
+          <div class="nd-key">Fix</div><div class="nd-val">Check <code>falcon.roi_records</code> for the domain's TLD/registrar/period combination. Ensure pricing records exist. Re-run after adding pricing data.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </div><!-- end errors -->
@@ -1646,7 +1678,7 @@ const nodeData = {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
       'Validation Rules': '11 SQL UPDATE statements (Steps S1–S11)',
       'Auto-Fix': 'Upgrades "new" → "premium new" and "renew" → "premium renew" when applicable',
-      'Bundled Flag': 'Sets bundled=TRUE where promo_tag IN (yes, bundle, bundled); else FALSE',
+      'Bundled Flag': 'Sets bundled=TRUE where promo_tag is any non-empty value (IF(TRIM(COALESCE(promo_tag,\'\')) != \'\', TRUE, FALSE)); else FALSE',
       'Pattern': 'Each rule ANDs validation_error IS NULL to avoid overwriting existing errors',
       'Side Effects': 'Sets status="ERROR" and updated_at on flagged rows'
     }
@@ -1704,13 +1736,24 @@ const nodeData = {
       'Guard': 'Only applies where effective_price IS NULL'
     }
   },
+  'final-calc': {
+    title: '🧮 final rebate calc',
+    type: 'n8n-nodes-base.executeWorkflowTrigger / Code',
+    details: {
+      'Description': 'BigQuery node that finalises the rebate amount for each domain.',
+      'Step 1': 'For renew / premium renew — effective_price = effective_first × period',
+      'Step 2': 'rebate = ROUND((amount − rebate_given) − effective_price, 2) where rebate_given is not null',
+      'Step 3': 'rebate = ROUND(amount − effective_price, 2) — fallback when no rebate_given',
+      'Step 4': "Sets error_code = 'UNREALIZED_DOMAIN' where rebate IS NULL AND effective_first IS NULL"
+    }
+  },
   'success-msg': {
     title: '📊 Generate Success Summary',
     type: 'BigQuery',
     details: {
       'Node Type': 'n8n-nodes-base.googleBigQuery',
       'Query Type': 'SELECT with STRING_AGG for Flock-formatted message',
-      'Output': 'Single row with flock_message column containing total/success/error breakdown',
+      'Output': 'Single row with flock_message column containing breakdown: validation_failed, priced_rows, rebate_calculated, pricing_unresolved, rebate_missing, success_rows',
       'Groups By': 'validation_error (SUCCESS = NULL)',
       'Format': 'Plain text with emoji and newlines for Flock rendering'
     }
