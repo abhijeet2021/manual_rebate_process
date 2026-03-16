@@ -1073,6 +1073,42 @@
             <span style="font-size:11px; color:#475569;">·</span>
             <span style="font-size:11px; font-family:monospace; color:#e2e8f0;">promo_tag</span>
           </div>
+          <!-- Pre-upload checklist note -->
+          <div style="margin-top:12px; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.35); border-left:3px solid #fbbf24; border-radius:7px; padding:10px 13px;">
+            <div style="font-size:11px; font-weight:700; color:#fcd34d; margin-bottom:7px; display:flex; align-items:center; gap:6px;">
+              <span>⚠️</span> Pre-Upload Checklist — must be filled by user before uploading to GCS
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="color:#fbbf24; font-size:12px; flex-shrink:0;">✦</span>
+                <code style="font-size:11px; background:rgba(251,191,36,0.12); padding:1px 7px; border-radius:4px; color:#fde68a;">date</code>
+                <span style="font-size:11px; color:#94a3b8;">transaction / renewal date for each row</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="color:#fbbf24; font-size:12px; flex-shrink:0;">✦</span>
+                <code style="font-size:11px; background:rgba(251,191,36,0.12); padding:1px 7px; border-radius:4px; color:#fde68a;">domain</code>
+                <span style="font-size:11px; color:#94a3b8;">fully qualified domain name (e.g. <span style="font-family:monospace; color:#e2e8f0;">example.com</span>)</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="color:#fbbf24; font-size:12px; flex-shrink:0;">✦</span>
+                <code style="font-size:11px; background:rgba(251,191,36,0.12); padding:1px 7px; border-radius:4px; color:#fde68a;">domain_type</code>
+                <span style="font-size:11px; color:#94a3b8;">one of: <span style="font-family:monospace; color:#e2e8f0;">new</span> · <span style="font-family:monospace; color:#e2e8f0;">renew</span> · <span style="font-family:monospace; color:#e2e8f0;">premium new</span> · <span style="font-family:monospace; color:#e2e8f0;">premium renew</span></span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="color:#fbbf24; font-size:12px; flex-shrink:0;">✦</span>
+                <code style="font-size:11px; background:rgba(251,191,36,0.12); padding:1px 7px; border-radius:4px; color:#fde68a;">client</code>
+                <span style="font-size:11px; color:#94a3b8;">reseller / client identifier for the batch</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="color:#fbbf24; font-size:12px; flex-shrink:0;">✦</span>
+                <code style="font-size:11px; background:rgba(251,191,36,0.12); padding:1px 7px; border-radius:4px; color:#fde68a;">promo_tag</code>
+                <span style="font-size:11px; color:#94a3b8;">promo / bundle tag if applicable — leave blank (not zero) if none</span>
+              </div>
+            </div>
+            <div style="margin-top:8px; padding-top:7px; border-top:1px solid rgba(251,191,36,0.15); font-size:10px; color:#78716c; font-style:italic;">
+              All 5 fields above must be actively filled by the user. Rows missing any of them will fail validation and be tagged with an error code.
+            </div>
+          </div>
         </div>
       </div>
 
