@@ -12,9 +12,9 @@
     --slate-4: #272a2d; --slate-5: #2e3135; --slate-6: #363a3f;
     --slate-7: #43484e; --slate-8: #5a6169; --slate-9: #696e77;
     --slate-10: #777b84; --slate-11: #b0b4ba; --slate-12: #edeef0;
-    /* Iris scale (indigo/purple accent) */
-    --iris-3: #1d2453; --iris-6: #3d4594; --iris-8: #5472e4;
-    --iris-9: #5b5bd6; --iris-10: #6e6ade; --iris-11: #aaaff0; --iris-12: #e0dffe;
+    /* Radix Blue scale (brand: #005dff) */
+    --iris-3: #00112e; --iris-6: #003899; --iris-8: #0047cc;
+    --iris-9: #005dff; --iris-10: #1a6eff; --iris-11: #5e96ff; --iris-12: #c5d9ff;
     /* Jade scale (green) */
     --jade-3: #0d2b22; --jade-9: #29a383; --jade-11: #1ad6a8;
     /* Amber scale */
@@ -60,7 +60,7 @@
   /* ── Header ── */
   .header {
     background: linear-gradient(135deg, var(--slate-2) 0%, var(--slate-1) 100%);
-    border-top: 3px solid var(--iris-9);
+    border-top: 3px solid #005dff;
     border-bottom: 1px solid var(--border);
     padding: 20px 40px;
     position: sticky; top: 0; z-index: 100;
@@ -70,15 +70,17 @@
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   }
   .header-logo-mark {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, var(--iris-9), var(--violet-9));
+    width: 36px; height: 36px;
+    background: #000;
+    border: 1px solid var(--iris-6);
     border-radius: var(--radius);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .header-logo-name {
-    font-size: 13px; font-weight: 800; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--iris-11);
+    font-size: 15px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: #005dff;
+    font-family: var(--font);
   }
   .header-divider {
     width: 1px; height: 36px; background: var(--border); flex-shrink: 0;
@@ -150,7 +152,7 @@
   }
   .stat-card .stat-num {
     font-size: 32px; font-weight: 800; margin: 8px 0 4px;
-    background: linear-gradient(135deg, var(--accent), var(--accent5));
+    background: linear-gradient(135deg, #005dff, var(--iris-11));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .stat-card .stat-label { color: var(--text2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -387,9 +389,10 @@
 <div class="header">
   <div class="header-logo">
     <div class="header-logo-mark">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 3v16M4 3h7a4 4 0 0 1 0 8H4M8 11l7 8"
-              stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="20" height="16" viewBox="0 0 98 80" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#005dff">
+          <path d="m48.75 25.6-23.17-25.6h-25.58l35.96 39.74-35.96 39.74h25.58l23.17-25.6 12.79-14.14z"/>
+        </g>
       </svg>
     </div>
     <span class="header-logo-name">Radix</span>
