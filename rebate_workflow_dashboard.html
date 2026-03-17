@@ -5,34 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Manual Rebate Process — Workflow Documentation</title>
 <style>
+  /* ── Radix Design System — Dark Color Tokens ── */
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3352;
-    --accent: #6c8ef5;
-    --accent2: #4ade80;
-    --accent3: #f59e0b;
-    --accent4: #f87171;
-    --accent5: #a78bfa;
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text3: #64748b;
-    --radius: 10px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    /* Slate scale (grays) */
+    --slate-1: #111113; --slate-2: #18191b; --slate-3: #212225;
+    --slate-4: #272a2d; --slate-5: #2e3135; --slate-6: #363a3f;
+    --slate-7: #43484e; --slate-8: #5a6169; --slate-9: #696e77;
+    --slate-10: #777b84; --slate-11: #b0b4ba; --slate-12: #edeef0;
+    /* Iris scale (indigo/purple accent) */
+    --iris-3: #1d2453; --iris-6: #3d4594; --iris-8: #5472e4;
+    --iris-9: #5b5bd6; --iris-10: #6e6ade; --iris-11: #aaaff0; --iris-12: #e0dffe;
+    /* Jade scale (green) */
+    --jade-3: #0d2b22; --jade-9: #29a383; --jade-11: #1ad6a8;
+    /* Amber scale */
+    --amber-3: #2a1d04; --amber-9: #ffb224; --amber-11: #f1a10d;
+    /* Red scale */
+    --red-3: #3b0d0c; --red-9: #e5484d; --red-11: #ff6369;
+    /* Violet scale */
+    --violet-3: #200f3a; --violet-9: #6e56cf; --violet-11: #baa7ff;
+    /* Sky scale (cyan/sky blue) */
+    --sky-3: #082d41; --sky-9: #7ce2fe; --sky-11: #75c7f0;
+    /* Orange scale */
+    --orange-3: #2d1a00; --orange-9: #f76b15; --orange-11: #ff801f;
+
+    /* ── Semantic tokens (mapped to scales) ── */
+    --bg:       var(--slate-1);   /* Step 1: page background */
+    --surface:  var(--slate-2);   /* Step 2: component background */
+    --surface2: var(--slate-3);   /* Step 3: interactive surface */
+    --border:   var(--slate-6);   /* Step 6: subtle border */
+    --accent:   var(--iris-9);    /* Step 9: primary accent (solid) */
+    --accent2:  var(--jade-11);   /* Step 11: green / success */
+    --accent3:  var(--amber-9);   /* Step 9: warning / amber */
+    --accent4:  var(--red-11);    /* Step 11: error / red */
+    --accent5:  var(--violet-11); /* Step 11: violet / secondary */
+    --text:     var(--slate-12);  /* Step 12: high-contrast text */
+    --text2:    var(--slate-11);  /* Step 11: low-contrast text */
+    --text3:    var(--slate-9);   /* Step 9: placeholder / disabled */
+
+    /* ── Radix design tokens ── */
+    --radius: 8px;   /* medium radius — Radix default */
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: var(--font);
     font-size: 14px;
     line-height: 1.6;
+    font-feature-settings: 'tnum' 1, 'ss01' 1;
   }
 
   /* ── Header ── */
   .header {
-    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    background: linear-gradient(135deg, var(--slate-2) 0%, var(--slate-1) 100%);
     border-bottom: 1px solid var(--border);
     padding: 28px 40px 24px;
     position: sticky; top: 0; z-index: 100;
@@ -41,7 +68,7 @@
   .header-icon {
     width: 44px; height: 44px;
     background: linear-gradient(135deg, var(--accent), var(--accent5));
-    border-radius: 10px;
+    border-radius: var(--radius);
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; flex-shrink: 0;
   }
@@ -52,9 +79,10 @@
     padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
     letter-spacing: 0.5px; text-transform: uppercase;
   }
-  .badge-green { background: rgba(74,222,128,0.12); color: var(--accent2); border: 1px solid rgba(74,222,128,0.25); }
-  .badge-blue { background: rgba(108,142,245,0.12); color: var(--accent); border: 1px solid rgba(108,142,245,0.25); }
-  .badge-purple { background: rgba(167,139,250,0.12); color: var(--accent5); border: 1px solid rgba(167,139,250,0.25); }
+  /* Badges — Radix step-3 bg, step-9 border, step-11 text */
+  .badge-green  { background: var(--jade-3);   color: var(--jade-11);   border: 1px solid var(--jade-9);   }
+  .badge-blue   { background: var(--iris-3);   color: var(--iris-11);   border: 1px solid var(--iris-6);   }
+  .badge-purple { background: var(--violet-3); color: var(--violet-11); border: 1px solid var(--violet-9); }
 
   /* ── Nav Tabs ── */
   .nav {
@@ -145,7 +173,7 @@
     cursor: pointer; padding: 0 8px;
   }
   .flow-box {
-    border-radius: 10px; padding: 10px 14px;
+    border-radius: var(--radius); padding: 10px 14px;
     font-size: 11px; font-weight: 600; text-align: center;
     min-width: 110px; max-width: 130px;
     transition: transform .15s, box-shadow .15s;
@@ -155,14 +183,15 @@
   .flow-box:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
   .flow-box.active-node { box-shadow: 0 0 0 3px var(--accent) !important; }
 
-  .fn-trigger { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80; }
-  .fn-notify  { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: #f59e0b; }
-  .fn-gcs     { background: rgba(108,142,245,0.12); border-color: rgba(108,142,245,0.35); color: #6c8ef5; }
-  .fn-filter  { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.35); color: #a78bfa; }
-  .fn-process { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.35); color: #38bdf8; }
-  .fn-bq      { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.35); color: #fb923c; }
-  .fn-validate{ background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.35); color: #f87171; }
-  .fn-done    { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80; }
+  /* Flow node types — Radix step-3 bg, step-6 border, step-11 text */
+  .fn-trigger { background: var(--jade-3);   border-color: var(--jade-9);   color: var(--jade-11);   }
+  .fn-notify  { background: var(--amber-3);  border-color: var(--amber-9);  color: var(--amber-11);  }
+  .fn-gcs     { background: var(--iris-3);   border-color: var(--iris-6);   color: var(--iris-11);   }
+  .fn-filter  { background: var(--violet-3); border-color: var(--violet-9); color: var(--violet-11); }
+  .fn-process { background: var(--sky-3);    border-color: var(--sky-9);    color: var(--sky-11);    }
+  .fn-bq      { background: var(--orange-3); border-color: var(--orange-9); color: var(--orange-11); }
+  .fn-validate{ background: var(--red-3);    border-color: var(--red-9);    color: var(--red-11);    }
+  .fn-done    { background: var(--jade-3);   border-color: var(--jade-9);   color: var(--jade-11);   }
 
   .flow-arrow {
     color: var(--text3); font-size: 18px; padding: 0 4px;
@@ -197,36 +226,37 @@
     letter-spacing: 0.5px; color: var(--text2);
     border-bottom: 1px solid var(--border);
   }
-  tbody tr { border-bottom: 1px solid rgba(46,51,82,0.5); transition: background .15s; }
-  tbody tr:hover { background: rgba(108,142,245,0.05); }
+  tbody tr { border-bottom: 1px solid var(--slate-4); transition: background .15s; }
+  tbody tr:hover { background: var(--iris-3); }
   tbody td { padding: 10px 14px; vertical-align: top; }
   .tag {
     display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
   }
-  .tag-error { background: rgba(248,113,113,0.15); color: #f87171; }
-  .tag-warn  { background: rgba(245,158,11,0.15); color: #f59e0b; }
-  .tag-ok    { background: rgba(74,222,128,0.15); color: #4ade80; }
-  .tag-blue  { background: rgba(108,142,245,0.15); color: #6c8ef5; }
-  .tag-purple{ background: rgba(167,139,250,0.15); color: #a78bfa; }
+  /* Tags — Radix step-3 bg, step-11 text */
+  .tag-error { background: var(--red-3);    color: var(--red-11);    }
+  .tag-warn  { background: var(--amber-3);  color: var(--amber-11);  }
+  .tag-ok    { background: var(--jade-3);   color: var(--jade-11);   }
+  .tag-blue  { background: var(--iris-3);   color: var(--iris-11);   }
+  .tag-purple{ background: var(--violet-3); color: var(--violet-11); }
 
   /* ── Code Blocks ── */
   .code-block {
-    background: #0a0c12;
+    background: var(--slate-1);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 16px;
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 12px;
-    color: #c9d1d9;
+    color: var(--slate-11);
     overflow-x: auto;
     line-height: 1.7;
     margin: 12px 0;
   }
-  .code-block .kw { color: #ff79c6; }
-  .code-block .fn { color: #50fa7b; }
-  .code-block .str { color: #f1fa8c; }
-  .code-block .cm { color: #6272a4; font-style: italic; }
-  .code-block .num { color: #bd93f9; }
+  .code-block .kw { color: var(--violet-11); }
+  .code-block .fn { color: var(--jade-11);   }
+  .code-block .str { color: var(--amber-11); }
+  .code-block .cm { color: var(--slate-8); font-style: italic; }
+  .code-block .num { color: var(--iris-11);  }
 
   /* ── Accordion ── */
   .accordion-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
@@ -236,7 +266,7 @@
     font-weight: 600; font-size: 13px; user-select: none;
     transition: background .15s;
   }
-  .accordion-header:hover { background: rgba(108,142,245,0.08); }
+  .accordion-header:hover { background: var(--iris-3); }
   .accordion-header .chevron { transition: transform .2s; font-size: 12px; }
   .accordion-header.open .chevron { transform: rotate(180deg); }
   .accordion-body { padding: 16px 18px; display: none; }
@@ -255,11 +285,12 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 8px; font-weight: 800;
   }
-  .tl-dot.green { background: rgba(74,222,128,0.2); border: 2px solid var(--accent2); color: var(--accent2); }
-  .tl-dot.blue  { background: rgba(108,142,245,0.2); border: 2px solid var(--accent); color: var(--accent); }
-  .tl-dot.orange{ background: rgba(251,146,60,0.2); border: 2px solid #fb923c; color: #fb923c; }
-  .tl-dot.red   { background: rgba(248,113,113,0.2); border: 2px solid var(--accent4); color: var(--accent4); }
-  .tl-dot.purple{ background: rgba(167,139,250,0.2); border: 2px solid var(--accent5); color: var(--accent5); }
+  /* Timeline dots — Radix step-3 bg */
+  .tl-dot.green  { background: var(--jade-3);   border: 2px solid var(--jade-9);   color: var(--jade-11);   }
+  .tl-dot.blue   { background: var(--iris-3);   border: 2px solid var(--iris-9);   color: var(--iris-11);   }
+  .tl-dot.orange { background: var(--orange-3); border: 2px solid var(--orange-9); color: var(--orange-11); }
+  .tl-dot.red    { background: var(--red-3);    border: 2px solid var(--red-9);    color: var(--red-11);    }
+  .tl-dot.purple { background: var(--violet-3); border: 2px solid var(--violet-9); color: var(--violet-11); }
   .tl-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
   .tl-sub { color: var(--text2); font-size: 12px; }
   .tl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -269,10 +300,11 @@
     border-radius: 8px; padding: 14px 16px; margin: 12px 0;
     border-left: 3px solid; font-size: 13px;
   }
-  .callout-info  { background: rgba(108,142,245,0.08); border-color: var(--accent); }
-  .callout-warn  { background: rgba(245,158,11,0.08); border-color: var(--accent3); }
-  .callout-ok    { background: rgba(74,222,128,0.08); border-color: var(--accent2); }
-  .callout-error { background: rgba(248,113,113,0.08); border-color: var(--accent4); }
+  /* Callouts — Radix step-3 bg, step-9 border */
+  .callout-info  { background: var(--iris-3);   border-color: var(--iris-9);   }
+  .callout-warn  { background: var(--amber-3);  border-color: var(--amber-9);  }
+  .callout-ok    { background: var(--jade-3);   border-color: var(--jade-9);   }
+  .callout-error { background: var(--red-3);    border-color: var(--red-9);    }
   .callout strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
   /* ── Section Titles ── */
@@ -317,7 +349,7 @@
   [data-tip]:hover::after {
     content: attr(data-tip);
     position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-    background: #0a0c12; border: 1px solid var(--border);
+    background: var(--slate-1); border: 1px solid var(--border);
     color: var(--text); padding: 6px 10px; border-radius: 6px;
     font-size: 11px; white-space: nowrap; z-index: 200; pointer-events: none;
     box-shadow: var(--shadow);
